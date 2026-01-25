@@ -1,80 +1,529 @@
 ---
 title: "Quickstart"
-description: "Start building awesome documentation in minutes"
+description: "Get started with Relay in 5 minutes"
 ---
 
-## Get started in three steps
+This guide walks you through the complete workflow: creating a dataset, uploading audio, adding annotations, training a model, and running inference.
 
-Get your documentation site running locally and make your first customization.
+## Prerequisites
 
-### Step 1: Set up your local environment
+- A Relay account ([sign up at app.relay.ai](https://app.relay.ai))
+- An API key (create one in Settings > API Keys)
 
-<AccordionGroup>
-  <Accordion icon="copy" title="Clone your docs locally">
-    During the onboarding process, you created a GitHub repository with your docs content if you didn't already have one. You can find a link to this repository in your [dashboard](https://dashboard.mintlify.com).
-    
-    To clone the repository locally so that you can make and preview changes to your docs, follow the [Cloning a repository](https://docs.github.com/en/repositories/creating-and-managing-repositories/cloning-a-repository) guide in the GitHub docs.
-  </Accordion>
-  <Accordion icon="rectangle-terminal" title="Start the preview server">
-    1. Install the Mintlify CLI: `npm i -g mint`
-    2. Navigate to your docs directory and run: `mint dev`
-    3. Open `http://localhost:3000` to see your docs live!
-    
-    <Tip>Your preview updates automatically as you edit files.</Tip>
-  </Accordion>
-</AccordionGroup>
+## Step 1: Get your API key
 
-### Step 2: Deploy your changes
+1. Sign in to [app.relay.ai](https://app.relay.ai)
+2. Navigate to **Settings > API Keys**
+3. Click **Create API Key**
+4. Copy and save your key securely
 
-<AccordionGroup>
-  <Accordion icon="github" title="Install our GitHub app">
-    Install the Mintlify GitHub app from your [dashboard](https://dashboard.mintlify.com/settings/organization/github-app).
-    
-    Our GitHub app automatically deploys your changes to your docs site, so you don't need to manage deployments yourself.
-</Accordion>
-<Accordion icon="palette" title="Update your site name and colors">
-    For a first change, let's update the name and colors of your docs site.
+<Warning>
+API keys are only shown once. Store your key in a secure location.
+</Warning>
 
-    1. Open `docs.json` in your editor.
-    2. Change the `"name"` field to your project name.
-    3. Update the `"colors"` to match your brand.
-    4. Save and see your changes instantly at `http://localhost:3000`.
+Set your API key as an environment variable:
 
-    <Tip>Try changing the primary color to see an immediate difference!</Tip>
-  </Accordion>
-</AccordionGroup>
+```bash
+export RELAY_API_KEY="your_api_key_here"
+```
 
-### Step 3: Go live
+## Step 2: Create a dataset
 
-<Accordion icon="rocket" title="Publish your docs">
-  1. Commit and push your changes.
-  2. Your docs will update and be live in moments!
-</Accordion>
+A dataset defines what artifact types you want to detect. Create one with the artifact types relevant to your use case:
+
+<CodeGroup>
+```bash curl
+curl -X POST https://api.relay.ai/api/v1/datasets \
+  -H "X-API-Key: $RELAY_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "name": "TTS Glitch Detection",
+    "description": "Detect glitches and pauses in TTS output",
+    "artifact_types": [
+      {"name": "glitch", "description": "Audio pop or click", "color": "#FF4444"},
+      {"name": "long_pause", "description": "Unnatural pause > 500ms", "color": "#4444FF"}
+    ]
+  }'
+```
+
+```python Python
+import requests
+import os
+
+API_KEY = os.environ["RELAY_API_KEY"]
+BASE_URL = "https://api.relay.ai"
+
+response = requests.post(
+    f"{BASE_URL}/api/v1/datasets",
+    headers={"X-API-Key": API_KEY},
+    json={
+        "name": "TTS Glitch Detection",
+        "description": "Detect glitches and pauses in TTS output",
+        "artifact_types": [
+            {"name": "glitch", "description": "Audio pop or click", "color": "#FF4444"},
+            {"name": "long_pause", "description": "Unnatural pause > 500ms", "color": "#4444FF"}
+        ]
+    }
+)
+dataset = response.json()
+dataset_id = dataset["id"]
+print(f"Created dataset: {dataset_id}")
+```
+</CodeGroup>
+
+Response:
+
+```json
+{
+  "id": "123e4567-e89b-12d3-a456-426614174000",
+  "name": "TTS Glitch Detection",
+  "description": "Detect glitches and pauses in TTS output",
+  "artifact_types": [
+    {"name": "glitch", "description": "Audio pop or click", "color": "#FF4444"},
+    {"name": "long_pause", "description": "Unnatural pause > 500ms", "color": "#4444FF"}
+  ],
+  "created_at": "2024-01-15T10:30:00Z",
+  "updated_at": "2024-01-15T10:30:00Z"
+}
+```
+
+<Note>
+Save the `id` from the response. You'll need it for subsequent steps.
+</Note>
+
+## Step 3: Upload audio files
+
+Audio upload uses presigned URLs for direct upload to cloud storage. The flow is:
+
+1. Request a presigned upload URL
+2. Upload the file to the URL
+3. Confirm the upload
+
+### Request upload URL
+
+<CodeGroup>
+```bash curl
+curl -X POST "https://api.relay.ai/api/v1/datasets/$DATASET_ID/audio/upload-url" \
+  -H "X-API-Key: $RELAY_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "filename": "sample_audio.wav",
+    "content_type": "audio/wav",
+    "file_size": 1048576
+  }'
+```
+
+```python Python
+# Request upload URL
+response = requests.post(
+    f"{BASE_URL}/api/v1/datasets/{dataset_id}/audio/upload-url",
+    headers={"X-API-Key": API_KEY},
+    json={
+        "filename": "sample_audio.wav",
+        "content_type": "audio/wav",
+        "file_size": 1048576  # File size in bytes
+    }
+)
+upload_info = response.json()
+```
+</CodeGroup>
+
+Response:
+
+```json
+{
+  "upload_url": "https://s3.amazonaws.com/...",
+  "fields": {
+    "key": "uploads/123/sample_audio.wav",
+    "policy": "...",
+    "x-amz-signature": "..."
+  },
+  "audio_id": "456e7890-e89b-12d3-a456-426614174001",
+  "expires_in": 3600
+}
+```
+
+### Upload the file
+
+<CodeGroup>
+```bash curl
+# Upload using the presigned URL (multipart form)
+curl -X POST "$UPLOAD_URL" \
+  -F "key=$KEY" \
+  -F "policy=$POLICY" \
+  -F "x-amz-signature=$SIGNATURE" \
+  -F "file=@sample_audio.wav"
+```
+
+```python Python
+# Upload file using presigned URL
+with open("sample_audio.wav", "rb") as f:
+    files = {"file": f}
+    upload_response = requests.post(
+        upload_info["upload_url"],
+        data=upload_info["fields"],
+        files=files
+    )
+```
+</CodeGroup>
+
+### Confirm upload
+
+<CodeGroup>
+```bash curl
+curl -X POST "https://api.relay.ai/api/v1/datasets/$DATASET_ID/audio/confirm" \
+  -H "X-API-Key: $RELAY_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "audio_id": "456e7890-e89b-12d3-a456-426614174001"
+  }'
+```
+
+```python Python
+# Confirm upload
+response = requests.post(
+    f"{BASE_URL}/api/v1/datasets/{dataset_id}/audio/confirm",
+    headers={"X-API-Key": API_KEY},
+    json={"audio_id": upload_info["audio_id"]}
+)
+print(f"Upload confirmed: {response.json()}")
+```
+</CodeGroup>
+
+After confirmation, Relay processes the audio (normalizes to 16kHz mono and computes embeddings). Check the audio file status by polling:
+
+```python Python
+# Wait for processing to complete
+import time
+
+while True:
+    response = requests.get(
+        f"{BASE_URL}/api/v1/datasets/{dataset_id}/audio/{audio_id}",
+        headers={"X-API-Key": API_KEY}
+    )
+    audio = response.json()
+    if audio["processing_status"] == "ready":
+        print("Audio processing complete")
+        break
+    elif audio["processing_status"] == "failed":
+        print(f"Processing failed: {audio['processing_error']}")
+        break
+    time.sleep(2)
+```
+
+## Step 4: Add annotations
+
+Create an annotation set and add annotations marking where artifacts occur:
+
+### Create annotation set
+
+<CodeGroup>
+```bash curl
+curl -X POST "https://api.relay.ai/api/v1/datasets/$DATASET_ID/annotation-sets" \
+  -H "X-API-Key: $RELAY_API_KEY"
+```
+
+```python Python
+response = requests.post(
+    f"{BASE_URL}/api/v1/datasets/{dataset_id}/annotation-sets",
+    headers={"X-API-Key": API_KEY}
+)
+annotation_set = response.json()
+annotation_set_id = annotation_set["id"]
+```
+</CodeGroup>
+
+### Add annotations
+
+Each annotation specifies which audio file, the artifact type, and the start/end timestamps in milliseconds:
+
+<CodeGroup>
+```bash curl
+curl -X POST "https://api.relay.ai/api/v1/datasets/$DATASET_ID/annotation-sets/$ANNOTATION_SET_ID/annotations/bulk" \
+  -H "X-API-Key: $RELAY_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "annotations": [
+      {
+        "audio_file_id": "456e7890-e89b-12d3-a456-426614174001",
+        "artifact_type": "glitch",
+        "start_ms": 1200,
+        "end_ms": 1450,
+        "confidence": 1.0
+      },
+      {
+        "audio_file_id": "456e7890-e89b-12d3-a456-426614174001",
+        "artifact_type": "long_pause",
+        "start_ms": 3500,
+        "end_ms": 4200,
+        "confidence": 1.0
+      }
+    ]
+  }'
+```
+
+```python Python
+response = requests.post(
+    f"{BASE_URL}/api/v1/datasets/{dataset_id}/annotation-sets/{annotation_set_id}/annotations/bulk",
+    headers={"X-API-Key": API_KEY},
+    json={
+        "annotations": [
+            {
+                "audio_file_id": audio_id,
+                "artifact_type": "glitch",
+                "start_ms": 1200,
+                "end_ms": 1450,
+                "confidence": 1.0
+            },
+            {
+                "audio_file_id": audio_id,
+                "artifact_type": "long_pause",
+                "start_ms": 3500,
+                "end_ms": 4200,
+                "confidence": 1.0
+            }
+        ]
+    }
+)
+print(f"Created {response.json()['created']} annotations")
+```
+</CodeGroup>
+
+### Publish the annotation set
+
+Before training, you must publish the annotation set. Published sets are immutable.
+
+<CodeGroup>
+```bash curl
+curl -X POST "https://api.relay.ai/api/v1/datasets/$DATASET_ID/annotation-sets/$ANNOTATION_SET_ID/publish" \
+  -H "X-API-Key: $RELAY_API_KEY"
+```
+
+```python Python
+response = requests.post(
+    f"{BASE_URL}/api/v1/datasets/{dataset_id}/annotation-sets/{annotation_set_id}/publish",
+    headers={"X-API-Key": API_KEY}
+)
+print(f"Published annotation set: {response.json()['status']}")
+```
+</CodeGroup>
+
+## Step 5: Train a model
+
+Submit a training job with your dataset and published annotation set:
+
+<CodeGroup>
+```bash curl
+curl -X POST https://api.relay.ai/api/v1/training-jobs \
+  -H "X-API-Key: $RELAY_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "dataset_id": "123e4567-e89b-12d3-a456-426614174000",
+    "annotation_set_id": "789e0123-e89b-12d3-a456-426614174002",
+    "config": {
+      "artifact_types": ["glitch", "long_pause"],
+      "epochs": 20,
+      "validation_split": 0.2,
+      "learning_rate": 0.001,
+      "batch_size": 32
+    }
+  }'
+```
+
+```python Python
+response = requests.post(
+    f"{BASE_URL}/api/v1/training-jobs",
+    headers={"X-API-Key": API_KEY},
+    json={
+        "dataset_id": dataset_id,
+        "annotation_set_id": annotation_set_id,
+        "config": {
+            "artifact_types": ["glitch", "long_pause"],
+            "epochs": 20,
+            "validation_split": 0.2,
+            "learning_rate": 0.001,
+            "batch_size": 32
+        }
+    }
+)
+training_job = response.json()
+job_id = training_job["id"]
+```
+</CodeGroup>
+
+Poll for training completion:
+
+```python Python
+while True:
+    response = requests.get(
+        f"{BASE_URL}/api/v1/training-jobs/{job_id}",
+        headers={"X-API-Key": API_KEY}
+    )
+    job = response.json()
+    print(f"Status: {job['status']} - Progress: {job['progress_percent']}%")
+
+    if job["status"] == "completed":
+        print(f"Training complete! Metrics: {job['metrics']}")
+        break
+    elif job["status"] == "failed":
+        print(f"Training failed: {job['error_message']}")
+        break
+    time.sleep(30)
+```
+
+## Step 6: Run inference
+
+Once training completes, a model is created automatically. Create an inference job and upload audio to detect artifacts:
+
+### Create inference job
+
+<CodeGroup>
+```bash curl
+curl -X POST https://api.relay.ai/api/v1/inference-jobs \
+  -H "X-API-Key: $RELAY_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "model_id": "model-uuid-here",
+    "config": {
+      "threshold": 0.5,
+      "merge_window_ms": 200,
+      "min_duration_ms": 50
+    }
+  }'
+```
+
+```python Python
+# Get the model ID from the completed training job or list models
+response = requests.get(
+    f"{BASE_URL}/api/v1/models",
+    headers={"X-API-Key": API_KEY}
+)
+models = response.json()
+model_id = models["items"][0]["id"]
+
+# Create inference job
+response = requests.post(
+    f"{BASE_URL}/api/v1/inference-jobs",
+    headers={"X-API-Key": API_KEY},
+    json={
+        "model_id": model_id,
+        "config": {
+            "threshold": 0.5,
+            "merge_window_ms": 200,
+            "min_duration_ms": 50
+        }
+    }
+)
+inference_job = response.json()
+inference_job_id = inference_job["id"]
+```
+</CodeGroup>
+
+### Upload audio for inference
+
+Upload audio using the same presigned URL flow:
+
+```python Python
+# Get upload URL
+response = requests.post(
+    f"{BASE_URL}/api/v1/inference-jobs/{inference_job_id}/files/upload-url",
+    headers={"X-API-Key": API_KEY},
+    json={
+        "filename": "test_audio.wav",
+        "content_type": "audio/wav",
+        "file_size_bytes": 2097152
+    }
+)
+upload_info = response.json()
+
+# Upload file
+with open("test_audio.wav", "rb") as f:
+    requests.post(
+        upload_info["upload_url"],
+        data=upload_info["upload_fields"],
+        files={"file": f}
+    )
+
+# Confirm upload
+requests.post(
+    f"{BASE_URL}/api/v1/inference-jobs/{inference_job_id}/files/confirm",
+    headers={"X-API-Key": API_KEY},
+    json={"file_id": upload_info["file_id"]}
+)
+```
+
+### Get detection results
+
+<CodeGroup>
+```bash curl
+curl "https://api.relay.ai/api/v1/inference-jobs/$INFERENCE_JOB_ID" \
+  -H "X-API-Key: $RELAY_API_KEY"
+```
+
+```python Python
+# Poll for results
+while True:
+    response = requests.get(
+        f"{BASE_URL}/api/v1/inference-jobs/{inference_job_id}",
+        headers={"X-API-Key": API_KEY}
+    )
+    job = response.json()
+
+    if job["processed_files"] == job["total_files"]:
+        for file in job["files"]:
+            print(f"File: {file['original_filename']}")
+            for detection in file["detections"]:
+                print(f"  {detection['artifact_type']}: {detection['start_ms']}-{detection['end_ms']}ms (confidence: {detection['confidence']})")
+        break
+    time.sleep(2)
+```
+</CodeGroup>
+
+Example response:
+
+```json
+{
+  "id": "job-uuid",
+  "status": "completed",
+  "total_files": 1,
+  "processed_files": 1,
+  "total_detections": 2,
+  "files": [
+    {
+      "original_filename": "test_audio.wav",
+      "status": "completed",
+      "detections": [
+        {
+          "artifact_type": "glitch",
+          "start_ms": 1200,
+          "end_ms": 1450,
+          "confidence": 0.87
+        },
+        {
+          "artifact_type": "long_pause",
+          "start_ms": 3500,
+          "end_ms": 4200,
+          "confidence": 0.92
+        }
+      ]
+    }
+  ]
+}
+```
 
 ## Next steps
 
-Now that you have your docs running, explore these key features:
-
 <CardGroup cols={2}>
-
-<Card title="Write Content" icon="pen-to-square" href="/essentials/markdown">
-  Learn MDX syntax and start writing your documentation.
-</Card>
-
-<Card title="Customize style" icon="palette" href="/essentials/settings">
-  Make your docs match your brand perfectly.
-</Card>
-
-<Card title="Add code examples" icon="square-code" href="/essentials/code">
-  Include syntax-highlighted code blocks.
-</Card>
-
-<Card title="API documentation" icon="code" href="/api-reference/introduction">
-  Auto-generate API docs from OpenAPI specs.
-</Card>
-
+  <Card title="Uploading Audio" icon="upload" href="/guides/uploading-audio">
+    Learn about supported formats and bulk uploads
+  </Card>
+  <Card title="Creating Annotations" icon="tag" href="/guides/creating-annotations">
+    Best practices for labeling your data
+  </Card>
+  <Card title="Training Models" icon="brain" href="/guides/training-models">
+    Configure training parameters
+  </Card>
+  <Card title="Understanding Results" icon="chart-bar" href="/guides/understanding-results">
+    Interpret detection confidence scores
+  </Card>
 </CardGroup>
-
-<Note>
-  **Need help?** See our [full documentation](https://mintlify.com/docs) or join our [community](https://mintlify.com/community).
-</Note>

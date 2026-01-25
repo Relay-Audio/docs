@@ -1,0 +1,381 @@
+---
+title: "Running Inference"
+description: "Detect artifacts in audio using your trained models"
+---
+
+After training a model, use it to detect artifacts in new audio files. Inference returns timestamped detections with confidence scores.
+
+## Creating an inference job
+
+Each inference job uses one model and can process multiple audio files:
+
+```python Python
+import requests
+import os
+
+API_KEY = os.environ["RELAY_API_KEY"]
+BASE_URL = "https://api.relay.ai"
+
+response = requests.post(
+    f"{BASE_URL}/api/v1/inference-jobs",
+    headers={"X-API-Key": API_KEY},
+    json={
+        "model_id": "your-model-id",
+        "config": {
+            "threshold": 0.5,
+            "merge_window_ms": 200,
+            "min_duration_ms": 50
+        }
+    }
+)
+job = response.json()
+inference_job_id = job["id"]
+```
+
+## Inference configuration
+
+| Parameter | Default | Range | Description |
+|-----------|---------|-------|-------------|
+| `threshold` | 0.5 | 0.0-1.0 | Minimum confidence score to report |
+| `merge_window_ms` | 200 | 0-5000 | Merge detections within this time window |
+| `min_duration_ms` | 50 | 0-1000 | Ignore detections shorter than this |
+
+### Threshold
+
+Controls the sensitivity of detection:
+
+- **Lower threshold (0.3-0.5)**: More detections, including uncertain ones
+- **Higher threshold (0.7-0.9)**: Fewer detections, higher confidence
+
+```python Python
+# Sensitive detection (catch more, but more false positives)
+"config": {"threshold": 0.3}
+
+# Conservative detection (miss some, but fewer false positives)
+"config": {"threshold": 0.8}
+```
+
+### Merge window
+
+Adjacent detections of the same type are merged if they're within this window:
+
+```python Python
+# Without merging, you might get:
+# glitch: 1000-1100ms
+# glitch: 1150-1250ms
+# glitch: 1280-1380ms
+
+# With merge_window_ms: 200, these become:
+# glitch: 1000-1380ms
+```
+
+### Minimum duration
+
+Filters out very short detections that may be noise:
+
+```python Python
+# Ignore detections shorter than 100ms
+"config": {"min_duration_ms": 100}
+```
+
+## Uploading audio for inference
+
+Upload audio files using presigned URLs (same pattern as dataset uploads):
+
+```python Python
+import os
+
+file_path = "test_audio.wav"
+file_size = os.path.getsize(file_path)
+
+# Step 1: Get upload URL
+response = requests.post(
+    f"{BASE_URL}/api/v1/inference-jobs/{inference_job_id}/files/upload-url",
+    headers={"X-API-Key": API_KEY},
+    json={
+        "filename": os.path.basename(file_path),
+        "content_type": "audio/wav",
+        "file_size_bytes": file_size
+    }
+)
+upload_info = response.json()
+
+# Step 2: Upload to presigned URL
+with open(file_path, "rb") as f:
+    requests.post(
+        upload_info["upload_url"],
+        data=upload_info["upload_fields"],
+        files={"file": f}
+    )
+
+# Step 3: Confirm upload (starts processing)
+response = requests.post(
+    f"{BASE_URL}/api/v1/inference-jobs/{inference_job_id}/files/confirm",
+    headers={"X-API-Key": API_KEY},
+    json={"file_id": upload_info["file_id"]}
+)
+print(f"File queued for inference: {response.json()['status']}")
+```
+
+## Batch inference
+
+Upload multiple files for parallel processing:
+
+```python Python
+import concurrent.futures
+
+def upload_for_inference(file_path):
+    file_size = os.path.getsize(file_path)
+
+    # Get upload URL
+    response = requests.post(
+        f"{BASE_URL}/api/v1/inference-jobs/{inference_job_id}/files/upload-url",
+        headers={"X-API-Key": API_KEY},
+        json={
+            "filename": os.path.basename(file_path),
+            "content_type": "audio/wav",
+            "file_size_bytes": file_size
+        }
+    )
+    upload_info = response.json()
+
+    # Upload file
+    with open(file_path, "rb") as f:
+        requests.post(
+            upload_info["upload_url"],
+            data=upload_info["upload_fields"],
+            files={"file": f}
+        )
+
+    # Confirm
+    requests.post(
+        f"{BASE_URL}/api/v1/inference-jobs/{inference_job_id}/files/confirm",
+        headers={"X-API-Key": API_KEY},
+        json={"file_id": upload_info["file_id"]}
+    )
+
+    return upload_info["file_id"]
+
+# Upload multiple files in parallel
+audio_files = ["audio1.wav", "audio2.wav", "audio3.wav"]
+with concurrent.futures.ThreadPoolExecutor(max_workers=5) as executor:
+    file_ids = list(executor.map(upload_for_inference, audio_files))
+
+print(f"Uploaded {len(file_ids)} files for inference")
+```
+
+## Getting results
+
+### Poll job status
+
+```python Python
+import time
+
+while True:
+    response = requests.get(
+        f"{BASE_URL}/api/v1/inference-jobs/{inference_job_id}",
+        headers={"X-API-Key": API_KEY}
+    )
+    job = response.json()
+
+    print(f"Processed: {job['processed_files']}/{job['total_files']}")
+
+    if job["processed_files"] == job["total_files"] and job["total_files"] > 0:
+        print("All files processed!")
+        break
+
+    if job["status"] == "failed":
+        print(f"Job failed: {job['error_message']}")
+        break
+
+    time.sleep(2)
+```
+
+### Get job details with files
+
+```python Python
+response = requests.get(
+    f"{BASE_URL}/api/v1/inference-jobs/{inference_job_id}",
+    headers={"X-API-Key": API_KEY}
+)
+job = response.json()
+
+for file in job["files"]:
+    print(f"\nFile: {file['original_filename']}")
+    print(f"Status: {file['status']}")
+    print(f"Detections: {file['detection_count']}")
+
+    for detection in file["detections"]:
+        print(f"  {detection['artifact_type']}: "
+              f"{detection['start_ms']}-{detection['end_ms']}ms "
+              f"(confidence: {detection['confidence']:.2f})")
+```
+
+### Get single file results
+
+```python Python
+file_id = "file-uuid"
+response = requests.get(
+    f"{BASE_URL}/api/v1/inference-jobs/{inference_job_id}/files/{file_id}",
+    headers={"X-API-Key": API_KEY}
+)
+file_result = response.json()
+```
+
+## Detection output format
+
+Each detection includes:
+
+```json
+{
+  "artifact_type": "glitch",
+  "start_ms": 1200,
+  "end_ms": 1450,
+  "confidence": 0.87
+}
+```
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `artifact_type` | string | Type of detected artifact |
+| `start_ms` | integer | Start time in milliseconds |
+| `end_ms` | integer | End time in milliseconds |
+| `confidence` | float | Model confidence (0.0-1.0) |
+
+## File statuses
+
+| Status | Description |
+|--------|-------------|
+| `pending` | Upload not yet confirmed |
+| `queued` | Waiting for processing |
+| `processing` | Running inference |
+| `completed` | Finished, detections available |
+| `failed` | Processing failed (check `error_message`) |
+
+## Listing inference jobs
+
+```python Python
+# List all jobs
+response = requests.get(
+    f"{BASE_URL}/api/v1/inference-jobs",
+    headers={"X-API-Key": API_KEY}
+)
+
+# Filter by model
+response = requests.get(
+    f"{BASE_URL}/api/v1/inference-jobs",
+    headers={"X-API-Key": API_KEY},
+    params={"model_id": model_id}
+)
+
+# Filter by status
+response = requests.get(
+    f"{BASE_URL}/api/v1/inference-jobs",
+    headers={"X-API-Key": API_KEY},
+    params={"status": "completed"}
+)
+```
+
+## Cancelling inference
+
+Cancel a pending or processing job:
+
+```python Python
+requests.delete(
+    f"{BASE_URL}/api/v1/inference-jobs/{inference_job_id}",
+    headers={"X-API-Key": API_KEY}
+)
+```
+
+## Downloading processed audio
+
+Download the original audio file:
+
+```python Python
+file_id = "file-uuid"
+response = requests.get(
+    f"{BASE_URL}/api/v1/inference-jobs/{inference_job_id}/files/{file_id}/download-url",
+    headers={"X-API-Key": API_KEY}
+)
+download_info = response.json()
+
+# Download the file
+audio_response = requests.get(download_info["url"])
+with open("downloaded.wav", "wb") as f:
+    f.write(audio_response.content)
+```
+
+## Production patterns
+
+### Continuous inference pipeline
+
+For production use, create a worker that processes audio as it arrives:
+
+```python Python
+import time
+from queue import Queue
+from threading import Thread
+
+def inference_worker(audio_queue, model_id):
+    """Worker that processes audio from a queue."""
+
+    # Create a new job for each batch
+    response = requests.post(
+        f"{BASE_URL}/api/v1/inference-jobs",
+        headers={"X-API-Key": API_KEY},
+        json={"model_id": model_id}
+    )
+    job_id = response.json()["id"]
+
+    while True:
+        file_path = audio_queue.get()
+        if file_path is None:
+            break
+
+        # Upload and process
+        upload_for_inference(file_path)
+
+        # Wait for result
+        # ...
+
+# Usage
+audio_queue = Queue()
+worker = Thread(target=inference_worker, args=(audio_queue, model_id))
+worker.start()
+
+# Add files to process
+audio_queue.put("audio1.wav")
+audio_queue.put("audio2.wav")
+
+# Signal done
+audio_queue.put(None)
+worker.join()
+```
+
+### Webhook-style results
+
+Poll efficiently with exponential backoff:
+
+```python Python
+import time
+
+def wait_for_results(job_id, max_wait=300):
+    """Wait for results with exponential backoff."""
+    start = time.time()
+    wait_time = 1
+
+    while time.time() - start < max_wait:
+        response = requests.get(
+            f"{BASE_URL}/api/v1/inference-jobs/{job_id}",
+            headers={"X-API-Key": API_KEY}
+        )
+        job = response.json()
+
+        if job["processed_files"] == job["total_files"]:
+            return job
+
+        time.sleep(wait_time)
+        wait_time = min(wait_time * 2, 30)  # Max 30 second wait
+
+    raise TimeoutError("Inference timed out")
+```

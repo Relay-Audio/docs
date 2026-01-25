@@ -1,0 +1,310 @@
+---
+title: "Creating Annotations"
+description: "Label audio artifacts with timestamps for model training"
+---
+
+Annotations mark where artifacts occur in your audio files. Each annotation has a start time, end time, and artifact type. The model learns to detect these patterns during training.
+
+## Annotation format
+
+Every annotation requires:
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `audio_file_id` | UUID | The audio file containing the artifact |
+| `artifact_type` | string | Type of artifact (must match dataset's defined types) |
+| `start_ms` | integer | Start time in milliseconds |
+| `end_ms` | integer | End time in milliseconds |
+| `confidence` | float | Labeling confidence 0.0-1.0 (default: 1.0) |
+
+```json
+{
+  "audio_file_id": "456e7890-e89b-12d3-a456-426614174001",
+  "artifact_type": "glitch",
+  "start_ms": 1200,
+  "end_ms": 1450,
+  "confidence": 1.0
+}
+```
+
+<Note>
+All annotations must have timestamps. Relay does not support file-level labels (e.g., "this file contains a glitch somewhere"). This enables precise, timestamped detection during inference.
+</Note>
+
+## Annotation sets
+
+Annotations are organized into **annotation sets**, which provide versioning and immutability for reproducible training.
+
+### Create an annotation set
+
+```python Python
+import requests
+import os
+
+API_KEY = os.environ["RELAY_API_KEY"]
+BASE_URL = "https://api.relay.ai"
+dataset_id = "your-dataset-id"
+
+response = requests.post(
+    f"{BASE_URL}/api/v1/datasets/{dataset_id}/annotation-sets",
+    headers={"X-API-Key": API_KEY}
+)
+annotation_set = response.json()
+annotation_set_id = annotation_set["id"]
+print(f"Created annotation set v{annotation_set['version']}")
+```
+
+Each annotation set gets an auto-incremented version number (v1, v2, v3, etc.).
+
+### Draft vs Published
+
+Annotation sets have two states:
+
+| State | Editable | Can Train |
+|-------|----------|-----------|
+| `draft` | Yes | No |
+| `published` | No | Yes |
+
+New annotation sets start as drafts. You can add, edit, and delete annotations freely. When you're done labeling, publish the set to lock it for training.
+
+## Adding annotations
+
+### Single annotation
+
+```python Python
+response = requests.post(
+    f"{BASE_URL}/api/v1/datasets/{dataset_id}/annotation-sets/{annotation_set_id}/annotations",
+    headers={"X-API-Key": API_KEY},
+    json={
+        "audio_file_id": "456e7890-e89b-12d3-a456-426614174001",
+        "artifact_type": "glitch",
+        "start_ms": 1200,
+        "end_ms": 1450,
+        "confidence": 1.0
+    }
+)
+annotation = response.json()
+print(f"Created annotation: {annotation['id']}")
+```
+
+### Bulk annotations
+
+For efficiency, create multiple annotations in a single request:
+
+```python Python
+response = requests.post(
+    f"{BASE_URL}/api/v1/datasets/{dataset_id}/annotation-sets/{annotation_set_id}/annotations/bulk",
+    headers={"X-API-Key": API_KEY},
+    json={
+        "annotations": [
+            {
+                "audio_file_id": "456e7890-e89b-12d3-a456-426614174001",
+                "artifact_type": "glitch",
+                "start_ms": 1200,
+                "end_ms": 1450
+            },
+            {
+                "audio_file_id": "456e7890-e89b-12d3-a456-426614174001",
+                "artifact_type": "long_pause",
+                "start_ms": 3500,
+                "end_ms": 4200
+            },
+            {
+                "audio_file_id": "789e0123-e89b-12d3-a456-426614174002",
+                "artifact_type": "glitch",
+                "start_ms": 500,
+                "end_ms": 750
+            }
+        ]
+    }
+)
+result = response.json()
+print(f"Created {result['created']} annotations")
+```
+
+## Editing annotations
+
+Update an existing annotation (only in draft sets):
+
+```python Python
+annotation_id = "annotation-uuid"
+
+response = requests.patch(
+    f"{BASE_URL}/api/v1/datasets/{dataset_id}/annotation-sets/{annotation_set_id}/annotations/{annotation_id}",
+    headers={"X-API-Key": API_KEY},
+    json={
+        "start_ms": 1180,  # Adjusted timing
+        "end_ms": 1470
+    }
+)
+```
+
+Delete an annotation:
+
+```python Python
+requests.delete(
+    f"{BASE_URL}/api/v1/datasets/{dataset_id}/annotation-sets/{annotation_set_id}/annotations/{annotation_id}",
+    headers={"X-API-Key": API_KEY}
+)
+```
+
+## Publishing annotation sets
+
+Before training, publish the annotation set:
+
+```python Python
+response = requests.post(
+    f"{BASE_URL}/api/v1/datasets/{dataset_id}/annotation-sets/{annotation_set_id}/publish",
+    headers={"X-API-Key": API_KEY}
+)
+published_set = response.json()
+print(f"Published set v{published_set['version']} with {published_set['total_annotations']} annotations")
+```
+
+<Warning>
+Published annotation sets are immutable. You cannot add, edit, or delete annotations after publishing.
+</Warning>
+
+If you need to make changes after publishing, create a new annotation set.
+
+## Viewing annotations
+
+### List annotations in a set
+
+```python Python
+response = requests.get(
+    f"{BASE_URL}/api/v1/datasets/{dataset_id}/annotation-sets/{annotation_set_id}/annotations",
+    headers={"X-API-Key": API_KEY}
+)
+annotations = response.json()
+```
+
+### Filter by audio file
+
+```python Python
+response = requests.get(
+    f"{BASE_URL}/api/v1/datasets/{dataset_id}/annotation-sets/{annotation_set_id}/annotations",
+    headers={"X-API-Key": API_KEY},
+    params={"audio_file_id": audio_id}
+)
+```
+
+### Filter by artifact type
+
+```python Python
+response = requests.get(
+    f"{BASE_URL}/api/v1/datasets/{dataset_id}/annotation-sets/{annotation_set_id}/annotations",
+    headers={"X-API-Key": API_KEY},
+    params={"artifact_type": "glitch"}
+)
+```
+
+## Label Studio export
+
+Export annotations in Label Studio format for external editing:
+
+```python Python
+response = requests.get(
+    f"{BASE_URL}/api/v1/datasets/{dataset_id}/annotation-sets/{annotation_set_id}/export/label-studio",
+    headers={"X-API-Key": API_KEY}
+)
+export_data = response.json()
+```
+
+The export follows Label Studio's JSON format:
+
+```json
+{
+  "tasks": [
+    {
+      "id": 1,
+      "data": {
+        "audio": "https://presigned-url-to-audio..."
+      },
+      "annotations": [
+        {
+          "id": 1,
+          "result": [
+            {
+              "id": "annotation-1",
+              "from_name": "labels",
+              "to_name": "audio",
+              "type": "labels",
+              "value": {
+                "start": 1.2,
+                "end": 1.45,
+                "labels": ["glitch"]
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
+```
+
+## Best practices
+
+### Minimum annotation duration
+
+Annotations should be at least 50ms long. Very short annotations may not provide enough context for the model to learn.
+
+```python Python
+# Good: Clear, distinct artifact
+{"start_ms": 1200, "end_ms": 1450}  # 250ms
+
+# Avoid: Too short
+{"start_ms": 1200, "end_ms": 1210}  # 10ms
+```
+
+### Consistent labeling
+
+Use the same criteria for all annotations of a given type:
+
+- Define clear guidelines for what constitutes each artifact type
+- Review annotations for consistency before publishing
+- Consider having multiple labelers and comparing their annotations
+
+### Coverage
+
+For best model performance:
+
+- Annotate at least 5 minutes of total audio per artifact type
+- Include examples from different audio sources/speakers
+- Label both positive examples (artifacts) AND ensure there's clean audio (negative examples)
+
+### Overlapping annotations
+
+Annotations for the same artifact type should not overlap. Different artifact types can overlap if they occur simultaneously.
+
+```python Python
+# OK: Different types can overlap
+{"artifact_type": "glitch", "start_ms": 1000, "end_ms": 1200}
+{"artifact_type": "echo", "start_ms": 1100, "end_ms": 1300}
+
+# Avoid: Same type overlapping
+{"artifact_type": "glitch", "start_ms": 1000, "end_ms": 1200}
+{"artifact_type": "glitch", "start_ms": 1100, "end_ms": 1300}  # Overlaps!
+```
+
+### Confidence scores
+
+Use the `confidence` field to indicate labeling certainty:
+
+- `1.0`: Definite artifact, clear example
+- `0.7-0.9`: Likely artifact, some ambiguity
+- `0.5-0.7`: Possible artifact, unsure
+
+```python Python
+{
+    "artifact_type": "glitch",
+    "start_ms": 1200,
+    "end_ms": 1450,
+    "confidence": 0.8  # Fairly confident but some ambiguity
+}
+```
+
+<Tip>
+During training, annotations with higher confidence have more influence on the model. Use lower confidence for edge cases.
+</Tip>

@@ -1,0 +1,324 @@
+---
+title: "Training Models"
+description: "Train custom artifact detection models on your annotated data"
+---
+
+Once you have a published annotation set, you can train a custom model to detect artifacts in new audio.
+
+## Prerequisites
+
+Before training, ensure:
+
+- **Annotation set is published**: Draft sets cannot be used for training
+- **All audio is processed**: Every file must have `processing_status: ready`
+- **Sufficient data**: At least 5 minutes of total audio
+- **Coverage per type**: At least 1 annotation per artifact type you want to detect
+
+## Creating a training job
+
+```python Python
+import requests
+import os
+
+API_KEY = os.environ["RELAY_API_KEY"]
+BASE_URL = "https://api.relay.ai"
+
+response = requests.post(
+    f"{BASE_URL}/api/v1/training-jobs",
+    headers={"X-API-Key": API_KEY},
+    json={
+        "dataset_id": "your-dataset-id",
+        "annotation_set_id": "your-annotation-set-id",
+        "config": {
+            "artifact_types": ["glitch", "long_pause"],
+            "epochs": 20,
+            "validation_split": 0.2,
+            "learning_rate": 0.001,
+            "batch_size": 32
+        }
+    }
+)
+training_job = response.json()
+print(f"Started training job: {training_job['id']}")
+```
+
+## Training configuration
+
+| Parameter | Default | Range | Description |
+|-----------|---------|-------|-------------|
+| `artifact_types` | (required) | - | List of artifact types to train on |
+| `epochs` | 20 | 1-100 | Training iterations over the dataset |
+| `validation_split` | 0.2 | 0.1-0.5 | Fraction of data held out for validation |
+| `learning_rate` | 0.001 | 0.0001-0.1 | Step size for optimizer |
+| `batch_size` | 32 | 8-256 | Samples per training step |
+| `chunk_size_ms` | 500 | - | Audio chunk size for processing |
+| `stride_ms` | 250 | - | Overlap between chunks |
+
+### Choosing artifact types
+
+You can train on all artifact types in your dataset or a subset:
+
+```python Python
+# Train on specific types only
+"artifact_types": ["glitch", "echo"]
+
+# Or include all types defined in the dataset
+"artifact_types": ["glitch", "long_pause", "hallucination", "echo"]
+```
+
+### Epochs
+
+More epochs can improve accuracy but risks overfitting:
+
+- **Small datasets (< 30 minutes)**: 10-20 epochs
+- **Medium datasets (30-120 minutes)**: 20-40 epochs
+- **Large datasets (> 120 minutes)**: 30-50 epochs
+
+### Validation split
+
+A portion of your data is held out to measure model performance:
+
+- `0.2` (20%): Good default for most datasets
+- `0.1` (10%): Use for very large datasets
+- `0.3` (30%): Use for small datasets to get reliable metrics
+
+### Learning rate
+
+Controls how aggressively the model updates:
+
+- `0.001`: Good default
+- `0.0001`: For fine-tuning or unstable training
+- `0.01`: For faster training on large datasets
+
+### Batch size
+
+Larger batches train faster but use more memory:
+
+- `32`: Good default
+- `16`: For limited memory
+- `64-128`: For large datasets
+
+## Monitoring training
+
+### Job status
+
+Poll the training job to check progress:
+
+```python Python
+import time
+
+job_id = training_job["id"]
+
+while True:
+    response = requests.get(
+        f"{BASE_URL}/api/v1/training-jobs/{job_id}",
+        headers={"X-API-Key": API_KEY}
+    )
+    job = response.json()
+
+    print(f"Status: {job['status']}")
+    print(f"Progress: {job['progress_percent']}%")
+
+    if job["status"] == "completed":
+        print("Training complete!")
+        print(f"Metrics: {job['metrics']}")
+        break
+    elif job["status"] == "failed":
+        print(f"Training failed: {job['error_message']}")
+        break
+
+    time.sleep(30)
+```
+
+### Training job statuses
+
+| Status | Description |
+|--------|-------------|
+| `pending` | Job created, waiting to start |
+| `queued` | Waiting for compute resources |
+| `training` | Actively training |
+| `completed` | Training finished successfully |
+| `failed` | Training failed (check `error_message`) |
+| `cancelled` | Cancelled by user |
+
+## Understanding metrics
+
+After training completes, the job includes evaluation metrics:
+
+```json
+{
+  "metrics": {
+    "precision": 0.89,
+    "recall": 0.85,
+    "f1_score": 0.87,
+    "per_class": {
+      "glitch": {
+        "precision": 0.92,
+        "recall": 0.88,
+        "f1_score": 0.90,
+        "support": 150
+      },
+      "long_pause": {
+        "precision": 0.85,
+        "recall": 0.82,
+        "f1_score": 0.83,
+        "support": 80
+      }
+    }
+  }
+}
+```
+
+### Key metrics
+
+| Metric | Description | Ideal |
+|--------|-------------|-------|
+| **Precision** | Of detected artifacts, how many are real | Higher = fewer false positives |
+| **Recall** | Of real artifacts, how many were detected | Higher = fewer missed artifacts |
+| **F1 Score** | Harmonic mean of precision and recall | Balance of both |
+| **Support** | Number of validation examples | More = more reliable metrics |
+
+### Interpreting results
+
+- **High precision, low recall**: Model is conservative, missing some artifacts
+- **Low precision, high recall**: Model is aggressive, flagging too much
+- **Both high**: Good model performance
+- **Both low**: Need more training data or different hyperparameters
+
+## Working with models
+
+### List models
+
+After training completes, a model is automatically created:
+
+```python Python
+response = requests.get(
+    f"{BASE_URL}/api/v1/models",
+    headers={"X-API-Key": API_KEY}
+)
+models = response.json()
+
+for model in models["items"]:
+    print(f"{model['name']}: {model['artifact_types']}")
+    print(f"  Precision: {model['eval_metrics']['precision']}")
+```
+
+### Get model details
+
+```python Python
+model_id = "your-model-id"
+response = requests.get(
+    f"{BASE_URL}/api/v1/models/{model_id}",
+    headers={"X-API-Key": API_KEY}
+)
+model = response.json()
+```
+
+### Update model
+
+Add a name and description for easier identification:
+
+```python Python
+response = requests.patch(
+    f"{BASE_URL}/api/v1/models/{model_id}",
+    headers={"X-API-Key": API_KEY},
+    json={
+        "name": "TTS Glitch Detector v2",
+        "description": "Trained on 2 hours of production TTS audio"
+    }
+)
+```
+
+### Active vs inactive
+
+Models can be marked active or inactive:
+
+```python Python
+# Deactivate a model
+requests.patch(
+    f"{BASE_URL}/api/v1/models/{model_id}",
+    headers={"X-API-Key": API_KEY},
+    json={"is_active": False}
+)
+
+# List only active models
+response = requests.get(
+    f"{BASE_URL}/api/v1/models",
+    headers={"X-API-Key": API_KEY},
+    params={"is_active": True}
+)
+```
+
+### Delete model
+
+Deleting archives the model (soft delete):
+
+```python Python
+requests.delete(
+    f"{BASE_URL}/api/v1/models/{model_id}",
+    headers={"X-API-Key": API_KEY}
+)
+```
+
+## Cancelling training
+
+Cancel a pending or running job:
+
+```python Python
+requests.delete(
+    f"{BASE_URL}/api/v1/training-jobs/{job_id}",
+    headers={"X-API-Key": API_KEY}
+)
+```
+
+## When to retrain
+
+Consider retraining when:
+
+- **Adding new artifact types**: Train a new model with the additional types
+- **Model performance drops**: Audio characteristics may have changed
+- **More data available**: More examples generally improve accuracy
+- **Tuning thresholds isn't enough**: If you're constantly adjusting inference thresholds, the model may need improvement
+
+## Troubleshooting
+
+### "Annotation set must be published"
+
+```python Python
+# Publish the annotation set first
+requests.post(
+    f"{BASE_URL}/api/v1/datasets/{dataset_id}/annotation-sets/{annotation_set_id}/publish",
+    headers={"X-API-Key": API_KEY}
+)
+```
+
+### "Not enough audio data"
+
+Ensure you have at least 5 minutes of processed audio:
+
+```python Python
+response = requests.get(
+    f"{BASE_URL}/api/v1/datasets/{dataset_id}/audio",
+    headers={"X-API-Key": API_KEY},
+    params={"status": "ready"}
+)
+audio_files = response.json()
+total_duration_ms = sum(f["duration_ms"] for f in audio_files["items"] if f["duration_ms"])
+print(f"Total audio: {total_duration_ms / 1000 / 60:.1f} minutes")
+```
+
+### "Audio files not ready"
+
+Wait for all audio to finish processing:
+
+```python Python
+response = requests.get(
+    f"{BASE_URL}/api/v1/datasets/{dataset_id}/audio",
+    headers={"X-API-Key": API_KEY}
+)
+audio_files = response.json()
+
+not_ready = [f for f in audio_files["items"] if f["processing_status"] != "ready"]
+if not_ready:
+    print(f"{len(not_ready)} files still processing")
+```

@@ -1,0 +1,320 @@
+---
+title: "Uploading Audio"
+description: "Upload audio files for training and inference"
+---
+
+Relay uses presigned URLs for secure, direct-to-storage uploads. This approach keeps large files off the API servers and enables fast, parallel uploads.
+
+## Upload flow
+
+The three-step upload process:
+
+<Steps>
+  <Step title="Request upload URL">
+    Call the API to get a presigned URL and upload credentials
+  </Step>
+  <Step title="Upload to storage">
+    POST the file directly to cloud storage using the presigned URL
+  </Step>
+  <Step title="Confirm upload">
+    Notify the API that the upload completed, triggering processing
+  </Step>
+</Steps>
+
+## Supported formats
+
+| Format | MIME Type | Extension |
+|--------|-----------|-----------|
+| WAV | audio/wav | .wav |
+| MP3 | audio/mpeg | .mp3 |
+| MP4 | audio/mp4 | .mp4, .m4a |
+| OGG | audio/ogg | .ogg |
+| FLAC | audio/flac | .flac |
+| WebM | audio/webm | .webm |
+| AAC | audio/aac | .aac |
+
+**Maximum file size**: 500 MB
+
+## Uploading to a dataset
+
+Use this flow when uploading audio files for training.
+
+### Step 1: Request upload URL
+
+```python Python
+import requests
+import os
+
+API_KEY = os.environ["RELAY_API_KEY"]
+BASE_URL = "https://api.relay.ai"
+dataset_id = "your-dataset-id"
+
+# Get file size
+file_path = "audio_sample.wav"
+file_size = os.path.getsize(file_path)
+
+# Request presigned URL
+response = requests.post(
+    f"{BASE_URL}/api/v1/datasets/{dataset_id}/audio/upload-url",
+    headers={"X-API-Key": API_KEY},
+    json={
+        "filename": "audio_sample.wav",
+        "content_type": "audio/wav",
+        "file_size": file_size
+    }
+)
+upload_info = response.json()
+```
+
+Response:
+
+```json
+{
+  "upload_url": "https://s3.amazonaws.com/relay-uploads/...",
+  "fields": {
+    "key": "tenant-123/dataset-456/audio_sample.wav",
+    "AWSAccessKeyId": "...",
+    "policy": "...",
+    "signature": "...",
+    "x-amz-security-token": "..."
+  },
+  "audio_id": "789e0123-e89b-12d3-a456-426614174000",
+  "expires_in": 3600
+}
+```
+
+### Step 2: Upload the file
+
+Upload directly to the presigned URL using multipart form data:
+
+```python Python
+with open(file_path, "rb") as f:
+    # Construct multipart form data
+    files = {"file": (os.path.basename(file_path), f)}
+
+    # Upload to presigned URL
+    upload_response = requests.post(
+        upload_info["upload_url"],
+        data=upload_info["fields"],
+        files=files
+    )
+
+    if upload_response.status_code == 204:
+        print("Upload successful")
+    else:
+        print(f"Upload failed: {upload_response.status_code}")
+```
+
+<Tip>
+The order of form fields matters. Include all `fields` from the response, then add the file as the last field.
+</Tip>
+
+### Step 3: Confirm upload
+
+Notify Relay that the upload completed:
+
+```python Python
+response = requests.post(
+    f"{BASE_URL}/api/v1/datasets/{dataset_id}/audio/confirm",
+    headers={"X-API-Key": API_KEY},
+    json={"audio_id": upload_info["audio_id"]}
+)
+confirmation = response.json()
+print(f"Status: {confirmation['status']}")
+```
+
+Response:
+
+```json
+{
+  "audio_id": "789e0123-e89b-12d3-a456-426614174000",
+  "status": "normalizing",
+  "message": "Upload confirmed. Processing started."
+}
+```
+
+## Processing pipeline
+
+After confirmation, Relay processes the audio:
+
+1. **Normalizing**: Convert to 16kHz mono WAV format
+2. **Embedding**: Compute audio embeddings for training
+
+Check processing status:
+
+```python Python
+response = requests.get(
+    f"{BASE_URL}/api/v1/datasets/{dataset_id}/audio/{audio_id}",
+    headers={"X-API-Key": API_KEY}
+)
+audio = response.json()
+print(f"Processing status: {audio['processing_status']}")
+```
+
+### Processing statuses
+
+| Status | Description |
+|--------|-------------|
+| `pending` | Awaiting upload confirmation |
+| `normalizing` | Converting audio format |
+| `embedding` | Computing embeddings |
+| `ready` | Processing complete, ready for annotation/training |
+| `failed` | Processing failed (check `processing_error`) |
+
+## Bulk uploads
+
+For multiple files, upload in parallel for best performance:
+
+```python Python
+import concurrent.futures
+import os
+
+def upload_file(file_path):
+    """Upload a single file and return its audio_id."""
+    file_size = os.path.getsize(file_path)
+    filename = os.path.basename(file_path)
+
+    # Get content type
+    content_types = {
+        ".wav": "audio/wav",
+        ".mp3": "audio/mpeg",
+        ".flac": "audio/flac",
+    }
+    ext = os.path.splitext(filename)[1].lower()
+    content_type = content_types.get(ext, "audio/wav")
+
+    # Request upload URL
+    response = requests.post(
+        f"{BASE_URL}/api/v1/datasets/{dataset_id}/audio/upload-url",
+        headers={"X-API-Key": API_KEY},
+        json={
+            "filename": filename,
+            "content_type": content_type,
+            "file_size": file_size
+        }
+    )
+    upload_info = response.json()
+
+    # Upload file
+    with open(file_path, "rb") as f:
+        requests.post(
+            upload_info["upload_url"],
+            data=upload_info["fields"],
+            files={"file": f}
+        )
+
+    # Confirm upload
+    requests.post(
+        f"{BASE_URL}/api/v1/datasets/{dataset_id}/audio/confirm",
+        headers={"X-API-Key": API_KEY},
+        json={"audio_id": upload_info["audio_id"]}
+    )
+
+    return upload_info["audio_id"]
+
+# Upload multiple files in parallel
+audio_files = ["file1.wav", "file2.wav", "file3.wav"]
+with concurrent.futures.ThreadPoolExecutor(max_workers=5) as executor:
+    audio_ids = list(executor.map(upload_file, audio_files))
+
+print(f"Uploaded {len(audio_ids)} files")
+```
+
+## Uploading for inference
+
+Inference uploads follow the same pattern but use different endpoints:
+
+```python Python
+inference_job_id = "your-inference-job-id"
+
+# Request upload URL
+response = requests.post(
+    f"{BASE_URL}/api/v1/inference-jobs/{inference_job_id}/files/upload-url",
+    headers={"X-API-Key": API_KEY},
+    json={
+        "filename": "test_audio.wav",
+        "content_type": "audio/wav",
+        "file_size_bytes": file_size
+    }
+)
+upload_info = response.json()
+
+# Upload file (same as dataset upload)
+with open("test_audio.wav", "rb") as f:
+    requests.post(
+        upload_info["upload_url"],
+        data=upload_info["upload_fields"],
+        files={"file": f}
+    )
+
+# Confirm upload
+requests.post(
+    f"{BASE_URL}/api/v1/inference-jobs/{inference_job_id}/files/confirm",
+    headers={"X-API-Key": API_KEY},
+    json={"file_id": upload_info["file_id"]}
+)
+```
+
+## Downloading audio
+
+Download audio files using presigned URLs:
+
+```python Python
+# Get download URL
+response = requests.get(
+    f"{BASE_URL}/api/v1/datasets/{dataset_id}/audio/{audio_id}/download-url",
+    headers={"X-API-Key": API_KEY}
+)
+download_info = response.json()
+
+# Download the file
+audio_response = requests.get(download_info["download_url"])
+with open("downloaded_audio.wav", "wb") as f:
+    f.write(audio_response.content)
+```
+
+To download the normalized version (16kHz mono):
+
+```python Python
+response = requests.get(
+    f"{BASE_URL}/api/v1/datasets/{dataset_id}/audio/{audio_id}/download-url",
+    headers={"X-API-Key": API_KEY},
+    params={"normalized": True}
+)
+```
+
+## Error handling
+
+### Common upload errors
+
+| Error | Cause | Solution |
+|-------|-------|----------|
+| 400 Bad Request | Invalid file size or content type | Check the file exists and format is supported |
+| 403 Forbidden | Presigned URL expired | Request a new upload URL (they expire after 1 hour) |
+| 413 Payload Too Large | File exceeds 500MB limit | Split the audio or compress it |
+| 404 Not Found | Dataset doesn't exist | Verify the dataset ID |
+
+### Handling failed processing
+
+If audio processing fails:
+
+```python Python
+response = requests.get(
+    f"{BASE_URL}/api/v1/datasets/{dataset_id}/audio/{audio_id}",
+    headers={"X-API-Key": API_KEY}
+)
+audio = response.json()
+
+if audio["processing_status"] == "failed":
+    print(f"Processing failed: {audio['processing_error']}")
+
+    # Delete and re-upload
+    requests.delete(
+        f"{BASE_URL}/api/v1/datasets/{dataset_id}/audio/{audio_id}",
+        headers={"X-API-Key": API_KEY}
+    )
+```
+
+<Tip>
+Common processing failures include corrupted audio files, unsupported codecs, or files that are too short (less than 100ms).
+</Tip>

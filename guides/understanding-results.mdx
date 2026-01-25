@@ -1,0 +1,331 @@
+---
+title: "Understanding Results"
+description: "Interpret detection output and confidence scores"
+---
+
+Inference results include timestamped detections with confidence scores. This guide explains how to interpret and use these results effectively.
+
+## Detection format
+
+Each detection contains:
+
+```json
+{
+  "artifact_type": "glitch",
+  "start_ms": 1200,
+  "end_ms": 1450,
+  "confidence": 0.87
+}
+```
+
+| Field | Description |
+|-------|-------------|
+| `artifact_type` | The type of artifact detected (matches your dataset's defined types) |
+| `start_ms` | Start time in milliseconds from the beginning of the audio |
+| `end_ms` | End time in milliseconds |
+| `confidence` | Model's confidence that this is a real artifact (0.0 to 1.0) |
+
+## Confidence scores
+
+The confidence score indicates how certain the model is about a detection:
+
+| Range | Interpretation | Typical Action |
+|-------|----------------|----------------|
+| 0.9-1.0 | Very high confidence | Almost certainly a real artifact |
+| 0.7-0.9 | High confidence | Likely a real artifact |
+| 0.5-0.7 | Moderate confidence | May need human review |
+| 0.3-0.5 | Low confidence | Possible false positive |
+| < 0.3 | Very low confidence | Usually filtered out by threshold |
+
+### Threshold tuning
+
+The `threshold` parameter in inference config controls which detections are returned:
+
+```python
+# Only return high-confidence detections
+"config": {"threshold": 0.8}
+
+# Return more detections for human review
+"config": {"threshold": 0.4}
+```
+
+#### Finding the right threshold
+
+Start with the default (0.5) and adjust based on your needs:
+
+1. **Too many false positives?** Raise the threshold
+2. **Missing real artifacts?** Lower the threshold
+3. **Unsure?** Return more detections and add human review
+
+```python Python
+# Example: Test different thresholds on the same audio
+thresholds = [0.3, 0.5, 0.7, 0.9]
+
+for threshold in thresholds:
+    response = requests.post(
+        f"{BASE_URL}/api/v1/inference-jobs",
+        headers={"X-API-Key": API_KEY},
+        json={
+            "model_id": model_id,
+            "config": {"threshold": threshold}
+        }
+    )
+    # Upload audio and get results...
+    print(f"Threshold {threshold}: {len(detections)} detections")
+```
+
+## Working with detections
+
+### Filtering by type
+
+```python Python
+response = requests.get(
+    f"{BASE_URL}/api/v1/inference-jobs/{job_id}",
+    headers={"X-API-Key": API_KEY}
+)
+job = response.json()
+
+for file in job["files"]:
+    # Get only glitch detections
+    glitches = [d for d in file["detections"] if d["artifact_type"] == "glitch"]
+
+    # Get only high-confidence detections
+    confident = [d for d in file["detections"] if d["confidence"] >= 0.8]
+
+    print(f"{file['original_filename']}:")
+    print(f"  Glitches: {len(glitches)}")
+    print(f"  High-confidence: {len(confident)}")
+```
+
+### Sorting detections
+
+```python Python
+# Sort by time
+detections_by_time = sorted(file["detections"], key=lambda d: d["start_ms"])
+
+# Sort by confidence (highest first)
+detections_by_confidence = sorted(
+    file["detections"],
+    key=lambda d: d["confidence"],
+    reverse=True
+)
+```
+
+### Calculating duration
+
+```python Python
+def detection_duration_ms(detection):
+    return detection["end_ms"] - detection["start_ms"]
+
+# Total artifact time
+total_artifact_ms = sum(
+    detection_duration_ms(d) for d in file["detections"]
+)
+print(f"Total artifact time: {total_artifact_ms / 1000:.2f} seconds")
+```
+
+## Detection merging
+
+The `merge_window_ms` parameter combines adjacent detections:
+
+**Without merging:**
+```
+glitch: 1000-1100ms
+glitch: 1150-1250ms
+glitch: 1280-1380ms
+```
+
+**With `merge_window_ms: 200`:**
+```
+glitch: 1000-1380ms
+```
+
+This is useful when:
+- The model detects multiple pieces of a single artifact
+- You want to count distinct artifacts rather than fragments
+
+## Integrating results into your pipeline
+
+### Flag problematic audio
+
+```python Python
+def has_critical_artifacts(detections, artifact_types, min_confidence=0.7):
+    """Check if audio has critical artifacts above threshold."""
+    for detection in detections:
+        if (detection["artifact_type"] in artifact_types and
+            detection["confidence"] >= min_confidence):
+            return True
+    return False
+
+# Example usage
+if has_critical_artifacts(file["detections"], ["glitch", "hallucination"], 0.8):
+    print("Audio needs review before publishing")
+```
+
+### Generate quality score
+
+```python Python
+def audio_quality_score(detections, duration_ms):
+    """Calculate quality score (0-100) based on artifact density."""
+    if not detections:
+        return 100
+
+    # Weight by confidence and duration
+    artifact_time = sum(
+        (d["end_ms"] - d["start_ms"]) * d["confidence"]
+        for d in detections
+    )
+
+    # Score decreases with more artifacts
+    artifact_ratio = artifact_time / duration_ms
+    score = max(0, 100 * (1 - artifact_ratio * 10))
+
+    return round(score)
+
+score = audio_quality_score(file["detections"], file["duration_ms"])
+print(f"Quality score: {score}/100")
+```
+
+### Create audio markers
+
+Generate markers for audio editing software:
+
+```python Python
+def to_audacity_labels(detections):
+    """Convert detections to Audacity label format."""
+    labels = []
+    for d in detections:
+        start_sec = d["start_ms"] / 1000
+        end_sec = d["end_ms"] / 1000
+        label = f"{d['artifact_type']} ({d['confidence']:.0%})"
+        labels.append(f"{start_sec:.3f}\t{end_sec:.3f}\t{label}")
+    return "\n".join(labels)
+
+# Save to file
+with open("labels.txt", "w") as f:
+    f.write(to_audacity_labels(file["detections"]))
+```
+
+### JSON export
+
+```python Python
+import json
+
+def export_results(job):
+    """Export results to JSON format."""
+    results = []
+    for file in job["files"]:
+        results.append({
+            "filename": file["original_filename"],
+            "duration_ms": file["duration_ms"],
+            "detection_count": file["detection_count"],
+            "detections": file["detections"]
+        })
+    return results
+
+# Save to file
+with open("inference_results.json", "w") as f:
+    json.dump(export_results(job), f, indent=2)
+```
+
+## Handling edge cases
+
+### No detections
+
+An empty detection list means no artifacts were found above the threshold:
+
+```python Python
+if not file["detections"]:
+    print(f"{file['original_filename']}: Clean audio, no artifacts detected")
+```
+
+### Processing failures
+
+Check file status before accessing detections:
+
+```python Python
+for file in job["files"]:
+    if file["status"] == "failed":
+        print(f"Failed: {file['original_filename']} - {file['error_message']}")
+        continue
+
+    if file["status"] != "completed":
+        print(f"Still processing: {file['original_filename']}")
+        continue
+
+    # Safe to access detections
+    process_detections(file["detections"])
+```
+
+### Overlapping detections
+
+Different artifact types can overlap (e.g., a glitch during a pause):
+
+```python Python
+def find_overlapping(detections):
+    """Find detections that overlap in time."""
+    overlaps = []
+    sorted_dets = sorted(detections, key=lambda d: d["start_ms"])
+
+    for i, d1 in enumerate(sorted_dets):
+        for d2 in sorted_dets[i+1:]:
+            if d2["start_ms"] < d1["end_ms"]:
+                overlaps.append((d1, d2))
+            else:
+                break
+
+    return overlaps
+```
+
+## Metrics and monitoring
+
+### Track detection rates
+
+```python Python
+def calculate_detection_stats(job):
+    """Calculate aggregate detection statistics."""
+    total_files = len(job["files"])
+    total_detections = sum(f["detection_count"] for f in job["files"])
+    files_with_artifacts = sum(1 for f in job["files"] if f["detection_count"] > 0)
+
+    by_type = {}
+    for file in job["files"]:
+        for d in file["detections"]:
+            t = d["artifact_type"]
+            by_type[t] = by_type.get(t, 0) + 1
+
+    return {
+        "total_files": total_files,
+        "total_detections": total_detections,
+        "files_with_artifacts": files_with_artifacts,
+        "artifact_rate": files_with_artifacts / total_files if total_files else 0,
+        "detections_per_file": total_detections / total_files if total_files else 0,
+        "by_type": by_type
+    }
+
+stats = calculate_detection_stats(job)
+print(f"Artifact rate: {stats['artifact_rate']:.1%}")
+print(f"Detections per file: {stats['detections_per_file']:.1f}")
+```
+
+### Monitor over time
+
+Track detection patterns to identify issues:
+
+```python Python
+# Log detections for monitoring
+import logging
+
+logger = logging.getLogger("relay_monitoring")
+
+for file in job["files"]:
+    logger.info(
+        "inference_result",
+        extra={
+            "file": file["original_filename"],
+            "detection_count": file["detection_count"],
+            "model_id": job["model_id"],
+            "timestamp": datetime.now().isoformat()
+        }
+    )
+```

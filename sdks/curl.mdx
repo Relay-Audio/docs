@@ -1,0 +1,459 @@
+---
+title: "cURL"
+description: "Using Relay with cURL"
+---
+
+This guide provides cURL examples for common Relay API operations.
+
+## Setup
+
+Set your API key as an environment variable:
+
+```bash
+export RELAY_API_KEY="your_api_key_here"
+```
+
+## Datasets
+
+### List datasets
+
+```bash
+curl https://api.relay.ai/api/v1/datasets \
+  -H "X-API-Key: $RELAY_API_KEY"
+```
+
+### Create dataset
+
+```bash
+curl -X POST https://api.relay.ai/api/v1/datasets \
+  -H "X-API-Key: $RELAY_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "name": "TTS Glitch Detection",
+    "description": "Detect audio artifacts in TTS output",
+    "artifact_types": [
+      {"name": "glitch", "description": "Audio pop or click", "color": "#FF4444"},
+      {"name": "long_pause", "description": "Silence > 500ms", "color": "#4444FF"}
+    ]
+  }'
+```
+
+### Get dataset
+
+```bash
+curl https://api.relay.ai/api/v1/datasets/$DATASET_ID \
+  -H "X-API-Key: $RELAY_API_KEY"
+```
+
+### Update dataset
+
+```bash
+curl -X PATCH https://api.relay.ai/api/v1/datasets/$DATASET_ID \
+  -H "X-API-Key: $RELAY_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "name": "Updated Dataset Name"
+  }'
+```
+
+### Delete dataset
+
+```bash
+curl -X DELETE https://api.relay.ai/api/v1/datasets/$DATASET_ID \
+  -H "X-API-Key: $RELAY_API_KEY"
+```
+
+## Audio files
+
+### Get upload URL
+
+```bash
+curl -X POST "https://api.relay.ai/api/v1/datasets/$DATASET_ID/audio/upload-url" \
+  -H "X-API-Key: $RELAY_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "filename": "sample.wav",
+    "content_type": "audio/wav",
+    "file_size": 1048576
+  }'
+```
+
+### Upload file to presigned URL
+
+After getting the upload URL and fields, upload using multipart form:
+
+```bash
+curl -X POST "$UPLOAD_URL" \
+  -F "key=$KEY" \
+  -F "policy=$POLICY" \
+  -F "x-amz-signature=$SIGNATURE" \
+  -F "x-amz-credential=$CREDENTIAL" \
+  -F "x-amz-algorithm=AWS4-HMAC-SHA256" \
+  -F "x-amz-date=$DATE" \
+  -F "x-amz-security-token=$TOKEN" \
+  -F "file=@sample.wav"
+```
+
+### Confirm upload
+
+```bash
+curl -X POST "https://api.relay.ai/api/v1/datasets/$DATASET_ID/audio/confirm" \
+  -H "X-API-Key: $RELAY_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "audio_id": "audio-uuid-here"
+  }'
+```
+
+### List audio files
+
+```bash
+curl "https://api.relay.ai/api/v1/datasets/$DATASET_ID/audio" \
+  -H "X-API-Key: $RELAY_API_KEY"
+
+# Filter by status
+curl "https://api.relay.ai/api/v1/datasets/$DATASET_ID/audio?status=ready" \
+  -H "X-API-Key: $RELAY_API_KEY"
+```
+
+### Get audio file
+
+```bash
+curl "https://api.relay.ai/api/v1/datasets/$DATASET_ID/audio/$AUDIO_ID" \
+  -H "X-API-Key: $RELAY_API_KEY"
+```
+
+### Delete audio file
+
+```bash
+curl -X DELETE "https://api.relay.ai/api/v1/datasets/$DATASET_ID/audio/$AUDIO_ID" \
+  -H "X-API-Key: $RELAY_API_KEY"
+```
+
+### Get download URL
+
+```bash
+curl "https://api.relay.ai/api/v1/datasets/$DATASET_ID/audio/$AUDIO_ID/download-url" \
+  -H "X-API-Key: $RELAY_API_KEY"
+
+# Normalized version
+curl "https://api.relay.ai/api/v1/datasets/$DATASET_ID/audio/$AUDIO_ID/download-url?normalized=true" \
+  -H "X-API-Key: $RELAY_API_KEY"
+```
+
+## Annotation sets
+
+### Create annotation set
+
+```bash
+curl -X POST "https://api.relay.ai/api/v1/datasets/$DATASET_ID/annotation-sets" \
+  -H "X-API-Key: $RELAY_API_KEY"
+```
+
+### List annotation sets
+
+```bash
+curl "https://api.relay.ai/api/v1/datasets/$DATASET_ID/annotation-sets" \
+  -H "X-API-Key: $RELAY_API_KEY"
+```
+
+### Get annotation set
+
+```bash
+curl "https://api.relay.ai/api/v1/datasets/$DATASET_ID/annotation-sets/$ANNOTATION_SET_ID" \
+  -H "X-API-Key: $RELAY_API_KEY"
+```
+
+### Publish annotation set
+
+```bash
+curl -X POST "https://api.relay.ai/api/v1/datasets/$DATASET_ID/annotation-sets/$ANNOTATION_SET_ID/publish" \
+  -H "X-API-Key: $RELAY_API_KEY"
+```
+
+### Delete annotation set
+
+```bash
+curl -X DELETE "https://api.relay.ai/api/v1/datasets/$DATASET_ID/annotation-sets/$ANNOTATION_SET_ID" \
+  -H "X-API-Key: $RELAY_API_KEY"
+```
+
+## Annotations
+
+### Create single annotation
+
+```bash
+curl -X POST "https://api.relay.ai/api/v1/datasets/$DATASET_ID/annotation-sets/$ANNOTATION_SET_ID/annotations" \
+  -H "X-API-Key: $RELAY_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "audio_file_id": "audio-uuid",
+    "artifact_type": "glitch",
+    "start_ms": 1200,
+    "end_ms": 1450,
+    "confidence": 1.0
+  }'
+```
+
+### Create bulk annotations
+
+```bash
+curl -X POST "https://api.relay.ai/api/v1/datasets/$DATASET_ID/annotation-sets/$ANNOTATION_SET_ID/annotations/bulk" \
+  -H "X-API-Key: $RELAY_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "annotations": [
+      {
+        "audio_file_id": "audio-uuid-1",
+        "artifact_type": "glitch",
+        "start_ms": 1200,
+        "end_ms": 1450
+      },
+      {
+        "audio_file_id": "audio-uuid-1",
+        "artifact_type": "long_pause",
+        "start_ms": 3500,
+        "end_ms": 4200
+      }
+    ]
+  }'
+```
+
+### List annotations
+
+```bash
+curl "https://api.relay.ai/api/v1/datasets/$DATASET_ID/annotation-sets/$ANNOTATION_SET_ID/annotations" \
+  -H "X-API-Key: $RELAY_API_KEY"
+
+# Filter by audio file
+curl "https://api.relay.ai/api/v1/datasets/$DATASET_ID/annotation-sets/$ANNOTATION_SET_ID/annotations?audio_file_id=$AUDIO_ID" \
+  -H "X-API-Key: $RELAY_API_KEY"
+```
+
+### Export to Label Studio
+
+```bash
+curl "https://api.relay.ai/api/v1/datasets/$DATASET_ID/annotation-sets/$ANNOTATION_SET_ID/export/label-studio" \
+  -H "X-API-Key: $RELAY_API_KEY"
+```
+
+## Training
+
+### Create training job
+
+```bash
+curl -X POST https://api.relay.ai/api/v1/training-jobs \
+  -H "X-API-Key: $RELAY_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "dataset_id": "dataset-uuid",
+    "annotation_set_id": "annotation-set-uuid",
+    "config": {
+      "artifact_types": ["glitch", "long_pause"],
+      "epochs": 20,
+      "validation_split": 0.2,
+      "learning_rate": 0.001,
+      "batch_size": 32
+    }
+  }'
+```
+
+### List training jobs
+
+```bash
+curl https://api.relay.ai/api/v1/training-jobs \
+  -H "X-API-Key: $RELAY_API_KEY"
+
+# Filter by dataset
+curl "https://api.relay.ai/api/v1/training-jobs?dataset_id=$DATASET_ID" \
+  -H "X-API-Key: $RELAY_API_KEY"
+```
+
+### Get training job
+
+```bash
+curl https://api.relay.ai/api/v1/training-jobs/$JOB_ID \
+  -H "X-API-Key: $RELAY_API_KEY"
+```
+
+### Cancel training job
+
+```bash
+curl -X DELETE https://api.relay.ai/api/v1/training-jobs/$JOB_ID \
+  -H "X-API-Key: $RELAY_API_KEY"
+```
+
+## Models
+
+### List models
+
+```bash
+curl https://api.relay.ai/api/v1/models \
+  -H "X-API-Key: $RELAY_API_KEY"
+
+# Only active models
+curl "https://api.relay.ai/api/v1/models?is_active=true" \
+  -H "X-API-Key: $RELAY_API_KEY"
+```
+
+### Get model
+
+```bash
+curl https://api.relay.ai/api/v1/models/$MODEL_ID \
+  -H "X-API-Key: $RELAY_API_KEY"
+```
+
+### Update model
+
+```bash
+curl -X PATCH https://api.relay.ai/api/v1/models/$MODEL_ID \
+  -H "X-API-Key: $RELAY_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "name": "TTS Glitch Detector v2",
+    "description": "Improved model with more training data"
+  }'
+```
+
+### Delete model
+
+```bash
+curl -X DELETE https://api.relay.ai/api/v1/models/$MODEL_ID \
+  -H "X-API-Key: $RELAY_API_KEY"
+```
+
+## Inference
+
+### Create inference job
+
+```bash
+curl -X POST https://api.relay.ai/api/v1/inference-jobs \
+  -H "X-API-Key: $RELAY_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "model_id": "model-uuid",
+    "config": {
+      "threshold": 0.5,
+      "merge_window_ms": 200,
+      "min_duration_ms": 50
+    }
+  }'
+```
+
+### List inference jobs
+
+```bash
+curl https://api.relay.ai/api/v1/inference-jobs \
+  -H "X-API-Key: $RELAY_API_KEY"
+```
+
+### Get inference job
+
+```bash
+curl https://api.relay.ai/api/v1/inference-jobs/$JOB_ID \
+  -H "X-API-Key: $RELAY_API_KEY"
+```
+
+### Get upload URL for inference
+
+```bash
+curl -X POST "https://api.relay.ai/api/v1/inference-jobs/$JOB_ID/files/upload-url" \
+  -H "X-API-Key: $RELAY_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "filename": "test.wav",
+    "content_type": "audio/wav",
+    "file_size_bytes": 2097152
+  }'
+```
+
+### Confirm inference file upload
+
+```bash
+curl -X POST "https://api.relay.ai/api/v1/inference-jobs/$JOB_ID/files/confirm" \
+  -H "X-API-Key: $RELAY_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "file_id": "file-uuid"
+  }'
+```
+
+### List inference files
+
+```bash
+curl "https://api.relay.ai/api/v1/inference-jobs/$JOB_ID/files" \
+  -H "X-API-Key: $RELAY_API_KEY"
+```
+
+### Get inference file
+
+```bash
+curl "https://api.relay.ai/api/v1/inference-jobs/$JOB_ID/files/$FILE_ID" \
+  -H "X-API-Key: $RELAY_API_KEY"
+```
+
+## API keys
+
+### List API keys
+
+```bash
+curl https://api.relay.ai/api/v1/auth/api-keys \
+  -H "X-API-Key: $RELAY_API_KEY"
+```
+
+### Create API key
+
+```bash
+curl -X POST https://api.relay.ai/api/v1/auth/api-keys \
+  -H "X-API-Key: $RELAY_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "name": "Production Server"
+  }'
+```
+
+### Revoke API key
+
+```bash
+curl -X DELETE https://api.relay.ai/api/v1/auth/api-keys/$KEY_ID \
+  -H "X-API-Key: $RELAY_API_KEY"
+```
+
+## Shell script example
+
+Complete workflow script:
+
+```bash
+#!/bin/bash
+set -e
+
+# Configuration
+API_KEY="${RELAY_API_KEY}"
+BASE_URL="https://api.relay.ai"
+
+# Create dataset
+echo "Creating dataset..."
+DATASET=$(curl -s -X POST "$BASE_URL/api/v1/datasets" \
+  -H "X-API-Key: $API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "name": "Test Dataset",
+    "artifact_types": [{"name": "glitch"}]
+  }')
+DATASET_ID=$(echo $DATASET | jq -r '.id')
+echo "Created dataset: $DATASET_ID"
+
+# Create annotation set
+echo "Creating annotation set..."
+ANNOTATION_SET=$(curl -s -X POST "$BASE_URL/api/v1/datasets/$DATASET_ID/annotation-sets" \
+  -H "X-API-Key: $API_KEY")
+ANNOTATION_SET_ID=$(echo $ANNOTATION_SET | jq -r '.id')
+echo "Created annotation set: $ANNOTATION_SET_ID"
+
+# Publish annotation set
+echo "Publishing annotation set..."
+curl -s -X POST "$BASE_URL/api/v1/datasets/$DATASET_ID/annotation-sets/$ANNOTATION_SET_ID/publish" \
+  -H "X-API-Key: $API_KEY" > /dev/null
+
+echo "Done!"
+```

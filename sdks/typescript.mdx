@@ -1,0 +1,454 @@
+---
+title: "TypeScript"
+description: "Using Relay with TypeScript"
+---
+
+This guide covers how to use the Relay API with TypeScript using the native `fetch` API.
+
+<Note>
+An official TypeScript SDK may be available in the future. For now, use `fetch` or your preferred HTTP client.
+</Note>
+
+## Setup
+
+```typescript
+const API_KEY = process.env.RELAY_API_KEY;
+const BASE_URL = "https://api.relay.ai";
+
+if (!API_KEY) {
+  throw new Error("RELAY_API_KEY environment variable not set");
+}
+
+const headers = {
+  "X-API-Key": API_KEY,
+  "Content-Type": "application/json",
+};
+```
+
+## Type definitions
+
+```typescript
+interface ArtifactType {
+  name: string;
+  description?: string;
+  color?: string;
+}
+
+interface Dataset {
+  id: string;
+  name: string;
+  description?: string;
+  artifact_types: ArtifactType[];
+  created_at: string;
+  updated_at: string;
+}
+
+interface AudioFile {
+  id: string;
+  original_filename: string;
+  duration_ms?: number;
+  processing_status: "pending" | "normalizing" | "embedding" | "ready" | "failed";
+}
+
+interface Annotation {
+  audio_file_id: string;
+  artifact_type: string;
+  start_ms: number;
+  end_ms: number;
+  confidence?: number;
+}
+
+interface Detection {
+  artifact_type: string;
+  start_ms: number;
+  end_ms: number;
+  confidence: number;
+}
+
+interface InferenceFile {
+  id: string;
+  original_filename: string;
+  status: string;
+  detections: Detection[];
+}
+
+interface InferenceJob {
+  id: string;
+  status: string;
+  total_files: number;
+  processed_files: number;
+  files: InferenceFile[];
+}
+
+interface UploadInfo {
+  upload_url: string;
+  fields: Record<string, string>;
+  audio_id?: string;
+  file_id?: string;
+}
+```
+
+## Client class
+
+```typescript
+class RelayClient {
+  private apiKey: string;
+  private baseUrl: string;
+
+  constructor(apiKey: string, baseUrl: string = "https://api.relay.ai") {
+    this.apiKey = apiKey;
+    this.baseUrl = baseUrl;
+  }
+
+  private async request<T>(
+    method: string,
+    path: string,
+    body?: unknown
+  ): Promise<T> {
+    const response = await fetch(`${this.baseUrl}${path}`, {
+      method,
+      headers: {
+        "X-API-Key": this.apiKey,
+        "Content-Type": "application/json",
+      },
+      body: body ? JSON.stringify(body) : undefined,
+    });
+
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(`API Error: ${error.detail || response.statusText}`);
+    }
+
+    if (response.status === 204) {
+      return {} as T;
+    }
+
+    return response.json();
+  }
+
+  // Datasets
+  async listDatasets(): Promise<Dataset[]> {
+    return this.request<Dataset[]>("GET", "/api/v1/datasets");
+  }
+
+  async createDataset(
+    name: string,
+    artifactTypes: ArtifactType[],
+    description?: string
+  ): Promise<Dataset> {
+    return this.request<Dataset>("POST", "/api/v1/datasets", {
+      name,
+      artifact_types: artifactTypes,
+      description,
+    });
+  }
+
+  async getDataset(datasetId: string): Promise<Dataset> {
+    return this.request<Dataset>("GET", `/api/v1/datasets/${datasetId}`);
+  }
+
+  // Audio
+  async getUploadUrl(
+    datasetId: string,
+    filename: string,
+    contentType: string,
+    fileSize: number
+  ): Promise<UploadInfo> {
+    return this.request<UploadInfo>(
+      "POST",
+      `/api/v1/datasets/${datasetId}/audio/upload-url`,
+      { filename, content_type: contentType, file_size: fileSize }
+    );
+  }
+
+  async confirmUpload(datasetId: string, audioId: string): Promise<void> {
+    await this.request(
+      "POST",
+      `/api/v1/datasets/${datasetId}/audio/confirm`,
+      { audio_id: audioId }
+    );
+  }
+
+  // Annotations
+  async createAnnotationSet(datasetId: string): Promise<{ id: string }> {
+    return this.request("POST", `/api/v1/datasets/${datasetId}/annotation-sets`);
+  }
+
+  async createAnnotationsBulk(
+    datasetId: string,
+    annotationSetId: string,
+    annotations: Annotation[]
+  ): Promise<{ created: number }> {
+    return this.request(
+      "POST",
+      `/api/v1/datasets/${datasetId}/annotation-sets/${annotationSetId}/annotations/bulk`,
+      { annotations }
+    );
+  }
+
+  async publishAnnotationSet(
+    datasetId: string,
+    annotationSetId: string
+  ): Promise<void> {
+    await this.request(
+      "POST",
+      `/api/v1/datasets/${datasetId}/annotation-sets/${annotationSetId}/publish`
+    );
+  }
+
+  // Training
+  async createTrainingJob(
+    datasetId: string,
+    annotationSetId: string,
+    config: Record<string, unknown>
+  ): Promise<{ id: string; status: string }> {
+    return this.request("POST", "/api/v1/training-jobs", {
+      dataset_id: datasetId,
+      annotation_set_id: annotationSetId,
+      config,
+    });
+  }
+
+  async getTrainingJob(jobId: string): Promise<{
+    id: string;
+    status: string;
+    progress_percent: number;
+    metrics?: Record<string, number>;
+  }> {
+    return this.request("GET", `/api/v1/training-jobs/${jobId}`);
+  }
+
+  // Models
+  async listModels(isActive?: boolean): Promise<{ items: Array<{ id: string; name?: string }> }> {
+    const params = isActive !== undefined ? `?is_active=${isActive}` : "";
+    return this.request("GET", `/api/v1/models${params}`);
+  }
+
+  // Inference
+  async createInferenceJob(
+    modelId: string,
+    config?: Record<string, unknown>
+  ): Promise<InferenceJob> {
+    return this.request("POST", "/api/v1/inference-jobs", {
+      model_id: modelId,
+      config,
+    });
+  }
+
+  async getInferenceJob(jobId: string): Promise<InferenceJob> {
+    return this.request("GET", `/api/v1/inference-jobs/${jobId}`);
+  }
+
+  async getInferenceUploadUrl(
+    jobId: string,
+    filename: string,
+    contentType: string,
+    fileSize: number
+  ): Promise<UploadInfo & { upload_fields: Record<string, string> }> {
+    return this.request(
+      "POST",
+      `/api/v1/inference-jobs/${jobId}/files/upload-url`,
+      { filename, content_type: contentType, file_size_bytes: fileSize }
+    );
+  }
+
+  async confirmInferenceUpload(jobId: string, fileId: string): Promise<void> {
+    await this.request(
+      "POST",
+      `/api/v1/inference-jobs/${jobId}/files/confirm`,
+      { file_id: fileId }
+    );
+  }
+}
+```
+
+## Usage examples
+
+### Create a dataset
+
+```typescript
+const client = new RelayClient(process.env.RELAY_API_KEY!);
+
+const dataset = await client.createDataset(
+  "TTS Glitch Detection",
+  [
+    { name: "glitch", description: "Audio pop or click" },
+    { name: "long_pause", description: "Silence > 500ms" },
+  ]
+);
+console.log(`Created dataset: ${dataset.id}`);
+```
+
+### Upload audio (Node.js)
+
+```typescript
+import * as fs from "fs";
+import * as path from "path";
+import FormData from "form-data";
+import fetch from "node-fetch";
+
+async function uploadAudio(
+  client: RelayClient,
+  datasetId: string,
+  filePath: string
+): Promise<string> {
+  const filename = path.basename(filePath);
+  const fileSize = fs.statSync(filePath).size;
+
+  // Get upload URL
+  const uploadInfo = await client.getUploadUrl(
+    datasetId,
+    filename,
+    "audio/wav",
+    fileSize
+  );
+
+  // Upload to S3
+  const form = new FormData();
+  for (const [key, value] of Object.entries(uploadInfo.fields)) {
+    form.append(key, value);
+  }
+  form.append("file", fs.createReadStream(filePath));
+
+  await fetch(uploadInfo.upload_url, {
+    method: "POST",
+    body: form,
+  });
+
+  // Confirm upload
+  await client.confirmUpload(datasetId, uploadInfo.audio_id!);
+
+  return uploadInfo.audio_id!;
+}
+
+const audioId = await uploadAudio(client, dataset.id, "sample.wav");
+```
+
+### Upload audio (Browser)
+
+```typescript
+async function uploadAudioBrowser(
+  client: RelayClient,
+  datasetId: string,
+  file: File
+): Promise<string> {
+  // Get upload URL
+  const uploadInfo = await client.getUploadUrl(
+    datasetId,
+    file.name,
+    file.type || "audio/wav",
+    file.size
+  );
+
+  // Upload to S3
+  const formData = new FormData();
+  for (const [key, value] of Object.entries(uploadInfo.fields)) {
+    formData.append(key, value);
+  }
+  formData.append("file", file);
+
+  await fetch(uploadInfo.upload_url, {
+    method: "POST",
+    body: formData,
+  });
+
+  // Confirm upload
+  await client.confirmUpload(datasetId, uploadInfo.audio_id!);
+
+  return uploadInfo.audio_id!;
+}
+```
+
+### Run inference
+
+```typescript
+async function runInference(
+  client: RelayClient,
+  modelId: string,
+  filePath: string
+): Promise<Detection[]> {
+  // Create job
+  const job = await client.createInferenceJob(modelId, { threshold: 0.5 });
+
+  // Upload file
+  const filename = path.basename(filePath);
+  const fileSize = fs.statSync(filePath).size;
+
+  const uploadInfo = await client.getInferenceUploadUrl(
+    job.id,
+    filename,
+    "audio/wav",
+    fileSize
+  );
+
+  const form = new FormData();
+  for (const [key, value] of Object.entries(uploadInfo.upload_fields)) {
+    form.append(key, value);
+  }
+  form.append("file", fs.createReadStream(filePath));
+
+  await fetch(uploadInfo.upload_url, {
+    method: "POST",
+    body: form,
+  });
+
+  await client.confirmInferenceUpload(job.id, uploadInfo.file_id!);
+
+  // Wait for results
+  let result = await client.getInferenceJob(job.id);
+  while (result.processed_files < result.total_files) {
+    await new Promise((resolve) => setTimeout(resolve, 2000));
+    result = await client.getInferenceJob(job.id);
+  }
+
+  return result.files.flatMap((f) => f.detections);
+}
+
+const detections = await runInference(client, modelId, "test.wav");
+for (const d of detections) {
+  console.log(`${d.artifact_type}: ${d.start_ms}-${d.end_ms}ms (${d.confidence})`);
+}
+```
+
+## Error handling
+
+```typescript
+try {
+  const dataset = await client.getDataset("invalid-id");
+} catch (error) {
+  if (error instanceof Error) {
+    console.error(`Error: ${error.message}`);
+  }
+}
+```
+
+## Polling helper
+
+```typescript
+async function waitForCompletion<T>(
+  checkFn: () => Promise<T>,
+  isDone: (result: T) => boolean,
+  intervalMs: number = 2000,
+  timeoutMs: number = 300000
+): Promise<T> {
+  const startTime = Date.now();
+
+  while (Date.now() - startTime < timeoutMs) {
+    const result = await checkFn();
+    if (isDone(result)) {
+      return result;
+    }
+    await new Promise((resolve) => setTimeout(resolve, intervalMs));
+  }
+
+  throw new Error("Operation timed out");
+}
+
+// Usage
+const job = await waitForCompletion(
+  () => client.getInferenceJob(jobId),
+  (j) => j.processed_files === j.total_files,
+  2000,
+  60000
+);
+```

@@ -1,0 +1,3620 @@
+openapi: 3.1.0
+info:
+  title: Relay API
+  description: Voice AI Artifact Detection Platform
+  version: 0.1.0
+paths:
+  /api/health:
+    get:
+      summary: Api Health
+      description: API health check.
+      operationId: api_health_api_health_get
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                additionalProperties:
+                  type: string
+                type: object
+                title: Response Api Health Api Health Get
+  /api/v1/auth/signup:
+    post:
+      tags:
+      - auth
+      summary: Signup
+      description: Create a new tenant account.
+      operationId: signup_api_v1_auth_signup_post
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SignupRequest'
+        required: true
+      responses:
+        '201':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LoginResponse'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/v1/auth/login:
+    post:
+      tags:
+      - auth
+      summary: Login
+      description: Authenticate and get access token.
+      operationId: login_api_v1_auth_login_post
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LoginRequest'
+        required: true
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LoginResponse'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/v1/auth/me:
+    get:
+      tags:
+      - auth
+      summary: Get Current User
+      description: Get current authenticated tenant.
+      operationId: get_current_user_api_v1_auth_me_get
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TenantResponse'
+      security:
+      - HTTPBearer: []
+      - APIKeyHeader: []
+  /api/v1/auth/api-keys:
+    get:
+      tags:
+      - auth
+      summary: List Api Keys
+      description: List all API keys for the tenant.
+      operationId: list_api_keys_api_v1_auth_api_keys_get
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                items:
+                  $ref: '#/components/schemas/ApiKeyResponse'
+                type: array
+                title: Response List Api Keys Api V1 Auth Api Keys Get
+      security:
+      - HTTPBearer: []
+      - APIKeyHeader: []
+    post:
+      tags:
+      - auth
+      summary: Create Api Key
+      description: Create a new API key for the tenant.
+      operationId: create_api_key_api_v1_auth_api_keys_post
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ApiKeyCreate'
+        required: true
+      responses:
+        '201':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiKeyResponse'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+      security:
+      - HTTPBearer: []
+      - APIKeyHeader: []
+  /api/v1/auth/api-keys/{key_id}:
+    delete:
+      tags:
+      - auth
+      summary: Revoke Api Key
+      description: Revoke an API key.
+      operationId: revoke_api_key_api_v1_auth_api_keys__key_id__delete
+      security:
+      - HTTPBearer: []
+      - APIKeyHeader: []
+      parameters:
+      - name: key_id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Key Id
+      responses:
+        '204':
+          description: Successful Response
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/v1/datasets:
+    get:
+      tags:
+      - datasets
+      summary: List Datasets
+      description: List all datasets for the current tenant.
+      operationId: list_datasets_api_v1_datasets_get
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                items:
+                  $ref: '#/components/schemas/DatasetWithStats'
+                type: array
+                title: Response List Datasets Api V1 Datasets Get
+      security:
+      - HTTPBearer: []
+      - APIKeyHeader: []
+    post:
+      tags:
+      - datasets
+      summary: Create Dataset
+      description: Create a new dataset.
+      operationId: create_dataset_api_v1_datasets_post
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DatasetCreate'
+        required: true
+      responses:
+        '201':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DatasetResponse'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+      security:
+      - HTTPBearer: []
+      - APIKeyHeader: []
+  /api/v1/datasets/{dataset_id}:
+    get:
+      tags:
+      - datasets
+      summary: Get Dataset
+      description: Get a specific dataset by ID.
+      operationId: get_dataset_api_v1_datasets__dataset_id__get
+      security:
+      - HTTPBearer: []
+      - APIKeyHeader: []
+      parameters:
+      - name: dataset_id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+          title: Dataset Id
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DatasetWithStats'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+    patch:
+      tags:
+      - datasets
+      summary: Update Dataset
+      description: Update a dataset.
+      operationId: update_dataset_api_v1_datasets__dataset_id__patch
+      security:
+      - HTTPBearer: []
+      - APIKeyHeader: []
+      parameters:
+      - name: dataset_id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+          title: Dataset Id
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DatasetUpdate'
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DatasetResponse'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+    delete:
+      tags:
+      - datasets
+      summary: Delete Dataset
+      description: Delete a dataset and all associated data.
+      operationId: delete_dataset_api_v1_datasets__dataset_id__delete
+      security:
+      - HTTPBearer: []
+      - APIKeyHeader: []
+      parameters:
+      - name: dataset_id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+          title: Dataset Id
+      responses:
+        '204':
+          description: Successful Response
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/v1/datasets/{dataset_id}/audio/upload-url:
+    post:
+      tags:
+      - audio
+      summary: Get Upload Url
+      description: 'Generate a presigned URL for direct S3 upload.
+
+
+        This endpoint:
+
+        1. Validates the dataset exists and belongs to the tenant
+
+        2. Creates a pending AudioFile record in the database
+
+        3. Generates a presigned POST URL for direct browser upload to S3
+
+
+        The client should:
+
+        1. Use the returned URL and fields to construct a multipart/form-data POST
+
+        2. Upload the file directly to S3
+
+        3. Call the confirm endpoint to mark the upload as complete'
+      operationId: get_upload_url_api_v1_datasets__dataset_id__audio_upload_url_post
+      security:
+      - HTTPBearer: []
+      - APIKeyHeader: []
+      parameters:
+      - name: dataset_id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+          title: Dataset Id
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UploadUrlRequest'
+      responses:
+        '201':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UploadUrlResponse'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/v1/datasets/{dataset_id}/audio/confirm:
+    post:
+      tags:
+      - audio
+      summary: Confirm Upload
+      description: 'Confirm that an audio file upload has completed.
+
+
+        This endpoint:
+
+        1. Verifies the file exists in S3
+
+        2. Updates the audio file status
+
+        3. Queues the file for processing (normalization + embedding)
+
+
+        The client should call this after successfully uploading to S3.'
+      operationId: confirm_upload_api_v1_datasets__dataset_id__audio_confirm_post
+      security:
+      - HTTPBearer: []
+      - APIKeyHeader: []
+      parameters:
+      - name: dataset_id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+          title: Dataset Id
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ConfirmUploadRequest'
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ConfirmUploadResponse'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/v1/datasets/{dataset_id}/audio:
+    get:
+      tags:
+      - audio
+      summary: List Audio Files
+      description: 'List all audio files in a dataset with pagination.
+
+
+        Supports filtering by processing status:
+
+        - pending: Awaiting upload confirmation
+
+        - normalizing: Being processed (normalized audio)
+
+        - embedding: Generating embeddings
+
+        - ready: Fully processed and ready for use
+
+        - failed: Processing failed'
+      operationId: list_audio_files_api_v1_datasets__dataset_id__audio_get
+      security:
+      - HTTPBearer: []
+      - APIKeyHeader: []
+      parameters:
+      - name: dataset_id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+          title: Dataset Id
+      - name: page
+        in: query
+        required: false
+        schema:
+          type: integer
+          minimum: 1
+          description: Page number
+          default: 1
+          title: Page
+        description: Page number
+      - name: page_size
+        in: query
+        required: false
+        schema:
+          type: integer
+          maximum: 100
+          minimum: 1
+          description: Items per page
+          default: 50
+          title: Page Size
+        description: Items per page
+      - name: status
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          description: Filter by processing status
+          title: Status
+        description: Filter by processing status
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AudioListResponse'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/v1/datasets/{dataset_id}/audio/{audio_id}:
+    get:
+      tags:
+      - audio
+      summary: Get Audio File
+      description: Get details of a specific audio file.
+      operationId: get_audio_file_api_v1_datasets__dataset_id__audio__audio_id__get
+      security:
+      - HTTPBearer: []
+      - APIKeyHeader: []
+      parameters:
+      - name: dataset_id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+          title: Dataset Id
+      - name: audio_id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+          title: Audio Id
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AudioFileResponse'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+    delete:
+      tags:
+      - audio
+      summary: Delete Audio File
+      description: 'Delete an audio file and its associated data.
+
+
+        This will:
+
+        1. Delete the audio file record from the database
+
+        2. Delete the original file from S3
+
+        3. Delete any normalized/embedding files from S3'
+      operationId: delete_audio_file_api_v1_datasets__dataset_id__audio__audio_id__delete
+      security:
+      - HTTPBearer: []
+      - APIKeyHeader: []
+      parameters:
+      - name: dataset_id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+          title: Dataset Id
+      - name: audio_id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+          title: Audio Id
+      responses:
+        '204':
+          description: Successful Response
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/v1/datasets/{dataset_id}/audio/{audio_id}/download-url:
+    get:
+      tags:
+      - audio
+      summary: Get Download Url
+      description: 'Generate a presigned download URL for an audio file.
+
+
+        By default returns a URL for the original uploaded file.
+
+        Set normalized=true to get the normalized version (if processing is complete).'
+      operationId: get_download_url_api_v1_datasets__dataset_id__audio__audio_id__download_url_get
+      security:
+      - HTTPBearer: []
+      - APIKeyHeader: []
+      parameters:
+      - name: dataset_id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+          title: Dataset Id
+      - name: audio_id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+          title: Audio Id
+      - name: normalized
+        in: query
+        required: false
+        schema:
+          type: boolean
+          description: Download normalized version if available
+          default: false
+          title: Normalized
+        description: Download normalized version if available
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DownloadUrlResponse'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/v1/datasets/{dataset_id}/annotation-sets:
+    post:
+      tags:
+      - annotations
+      summary: Create Annotation Set
+      description: 'Create a new annotation set (draft).
+
+
+        Each annotation set has an auto-incremented version number.
+
+        New sets start as drafts and must be published before training.'
+      operationId: create_annotation_set_api_v1_datasets__dataset_id__annotation_sets_post
+      security:
+      - HTTPBearer: []
+      - APIKeyHeader: []
+      parameters:
+      - name: dataset_id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+          title: Dataset Id
+      responses:
+        '201':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AnnotationSetResponse'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+    get:
+      tags:
+      - annotations
+      summary: List Annotation Sets
+      description: List all annotation sets for a dataset.
+      operationId: list_annotation_sets_api_v1_datasets__dataset_id__annotation_sets_get
+      security:
+      - HTTPBearer: []
+      - APIKeyHeader: []
+      parameters:
+      - name: dataset_id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+          title: Dataset Id
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AnnotationSetListResponse'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/v1/datasets/{dataset_id}/annotation-sets/{annotation_set_id}:
+    get:
+      tags:
+      - annotations
+      summary: Get Annotation Set Detail
+      description: Get annotation set with all annotations.
+      operationId: get_annotation_set_detail_api_v1_datasets__dataset_id__annotation_sets__annotation_set_id__get
+      security:
+      - HTTPBearer: []
+      - APIKeyHeader: []
+      parameters:
+      - name: dataset_id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+          title: Dataset Id
+      - name: annotation_set_id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+          title: Annotation Set Id
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AnnotationSetWithAnnotations'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+    delete:
+      tags:
+      - annotations
+      summary: Delete Annotation Set
+      description: 'Delete an annotation set.
+
+
+        Only draft annotation sets can be deleted.'
+      operationId: delete_annotation_set_api_v1_datasets__dataset_id__annotation_sets__annotation_set_id__delete
+      security:
+      - HTTPBearer: []
+      - APIKeyHeader: []
+      parameters:
+      - name: dataset_id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+          title: Dataset Id
+      - name: annotation_set_id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+          title: Annotation Set Id
+      responses:
+        '204':
+          description: Successful Response
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/v1/datasets/{dataset_id}/annotation-sets/{annotation_set_id}/publish:
+    post:
+      tags:
+      - annotations
+      summary: Publish Annotation Set
+      description: 'Publish an annotation set.
+
+
+        Once published, the annotation set becomes immutable.
+
+        Stats are computed and stored for quick access.'
+      operationId: publish_annotation_set_api_v1_datasets__dataset_id__annotation_sets__annotation_set_id__publish_post
+      security:
+      - HTTPBearer: []
+      - APIKeyHeader: []
+      parameters:
+      - name: dataset_id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+          title: Dataset Id
+      - name: annotation_set_id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+          title: Annotation Set Id
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AnnotationSetResponse'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/v1/datasets/{dataset_id}/annotation-sets/{annotation_set_id}/annotations:
+    post:
+      tags:
+      - annotations
+      summary: Create Annotation
+      description: Create a single annotation.
+      operationId: create_annotation_api_v1_datasets__dataset_id__annotation_sets__annotation_set_id__annotations_post
+      security:
+      - HTTPBearer: []
+      - APIKeyHeader: []
+      parameters:
+      - name: dataset_id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+          title: Dataset Id
+      - name: annotation_set_id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+          title: Annotation Set Id
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AnnotationCreate'
+      responses:
+        '201':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AnnotationResponse'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+    get:
+      tags:
+      - annotations
+      summary: List Annotations
+      description: List annotations with optional filters.
+      operationId: list_annotations_api_v1_datasets__dataset_id__annotation_sets__annotation_set_id__annotations_get
+      security:
+      - HTTPBearer: []
+      - APIKeyHeader: []
+      parameters:
+      - name: dataset_id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+          title: Dataset Id
+      - name: annotation_set_id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+          title: Annotation Set Id
+      - name: audio_file_id
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: string
+            format: uuid
+          - type: 'null'
+          title: Audio File Id
+      - name: artifact_type
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Artifact Type
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/AnnotationResponse'
+                title: Response List Annotations Api V1 Datasets  Dataset Id  Annotation
+                  Sets  Annotation Set Id  Annotations Get
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/v1/datasets/{dataset_id}/annotation-sets/{annotation_set_id}/annotations/bulk:
+    post:
+      tags:
+      - annotations
+      summary: Create Annotations Bulk
+      description: Create multiple annotations at once.
+      operationId: create_annotations_bulk_api_v1_datasets__dataset_id__annotation_sets__annotation_set_id__annotations_bulk_post
+      security:
+      - HTTPBearer: []
+      - APIKeyHeader: []
+      parameters:
+      - name: dataset_id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+          title: Dataset Id
+      - name: annotation_set_id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+          title: Annotation Set Id
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AnnotationBulkCreate'
+      responses:
+        '201':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AnnotationBulkResponse'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/v1/datasets/{dataset_id}/annotation-sets/{annotation_set_id}/annotations/{annotation_id}:
+    patch:
+      tags:
+      - annotations
+      summary: Update Annotation
+      description: Update an annotation.
+      operationId: update_annotation_api_v1_datasets__dataset_id__annotation_sets__annotation_set_id__annotations__annotation_id__patch
+      security:
+      - HTTPBearer: []
+      - APIKeyHeader: []
+      parameters:
+      - name: dataset_id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+          title: Dataset Id
+      - name: annotation_set_id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+          title: Annotation Set Id
+      - name: annotation_id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+          title: Annotation Id
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AnnotationUpdate'
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AnnotationResponse'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+    delete:
+      tags:
+      - annotations
+      summary: Delete Annotation
+      description: Delete an annotation.
+      operationId: delete_annotation_api_v1_datasets__dataset_id__annotation_sets__annotation_set_id__annotations__annotation_id__delete
+      security:
+      - HTTPBearer: []
+      - APIKeyHeader: []
+      parameters:
+      - name: dataset_id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+          title: Dataset Id
+      - name: annotation_set_id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+          title: Annotation Set Id
+      - name: annotation_id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+          title: Annotation Id
+      responses:
+        '204':
+          description: Successful Response
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/v1/datasets/{dataset_id}/annotation-sets/{annotation_set_id}/export/label-studio:
+    get:
+      tags:
+      - annotations
+      summary: Export Label Studio
+      description: 'Export annotations in Label Studio format.
+
+
+        This format can be imported into Label Studio for editing
+
+        or used with Label Studio ML backend.'
+      operationId: export_label_studio_api_v1_datasets__dataset_id__annotation_sets__annotation_set_id__export_label_studio_get
+      security:
+      - HTTPBearer: []
+      - APIKeyHeader: []
+      parameters:
+      - name: dataset_id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+          title: Dataset Id
+      - name: annotation_set_id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+          title: Annotation Set Id
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LabelStudioExport'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/v1/training-jobs:
+    post:
+      tags:
+      - training
+      summary: Create Training Job
+      description: 'Create a new training job.
+
+
+        Requirements:
+
+        - Dataset must belong to tenant
+
+        - Annotation set must be published
+
+        - All audio files must have embeddings computed
+
+        - At least 5 minutes of total audio'
+      operationId: create_training_job_api_v1_training_jobs_post
+      security:
+      - HTTPBearer: []
+      - APIKeyHeader: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TrainingJobCreate'
+      responses:
+        '201':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TrainingJobResponse'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+    get:
+      tags:
+      - training
+      summary: List Training Jobs
+      description: List training jobs for the tenant.
+      operationId: list_training_jobs_api_v1_training_jobs_get
+      security:
+      - HTTPBearer: []
+      - APIKeyHeader: []
+      parameters:
+      - name: dataset_id
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: string
+            format: uuid
+          - type: 'null'
+          title: Dataset Id
+      - name: status
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Status
+      - name: page
+        in: query
+        required: false
+        schema:
+          type: integer
+          minimum: 1
+          default: 1
+          title: Page
+      - name: page_size
+        in: query
+        required: false
+        schema:
+          type: integer
+          maximum: 100
+          minimum: 1
+          default: 20
+          title: Page Size
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TrainingJobListResponse'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/v1/training-jobs/{job_id}:
+    get:
+      tags:
+      - training
+      summary: Get Training Job
+      description: Get training job details with progress and metrics.
+      operationId: get_training_job_api_v1_training_jobs__job_id__get
+      security:
+      - HTTPBearer: []
+      - APIKeyHeader: []
+      parameters:
+      - name: job_id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+          title: Job Id
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TrainingJobResponse'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+    delete:
+      tags:
+      - training
+      summary: Cancel Training Job
+      description: Cancel a pending or running training job.
+      operationId: cancel_training_job_api_v1_training_jobs__job_id__delete
+      security:
+      - HTTPBearer: []
+      - APIKeyHeader: []
+      parameters:
+      - name: job_id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+          title: Job Id
+      responses:
+        '204':
+          description: Successful Response
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/v1/models:
+    get:
+      tags:
+      - training
+      summary: List Models
+      description: List trained models for the tenant.
+      operationId: list_models_api_v1_models_get
+      security:
+      - HTTPBearer: []
+      - APIKeyHeader: []
+      parameters:
+      - name: is_active
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: boolean
+          - type: 'null'
+          title: Is Active
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ModelListResponse'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/v1/models/{model_id}:
+    get:
+      tags:
+      - training
+      summary: Get Model
+      description: Get model details with metrics.
+      operationId: get_model_api_v1_models__model_id__get
+      security:
+      - HTTPBearer: []
+      - APIKeyHeader: []
+      parameters:
+      - name: model_id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+          title: Model Id
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ModelResponse'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+    patch:
+      tags:
+      - training
+      summary: Update Model
+      description: Update model name, description, or active status.
+      operationId: update_model_api_v1_models__model_id__patch
+      security:
+      - HTTPBearer: []
+      - APIKeyHeader: []
+      parameters:
+      - name: model_id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+          title: Model Id
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ModelUpdate'
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ModelResponse'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+    delete:
+      tags:
+      - training
+      summary: Delete Model
+      description: 'Delete a model.
+
+
+        This archives the model rather than hard deleting.'
+      operationId: delete_model_api_v1_models__model_id__delete
+      security:
+      - HTTPBearer: []
+      - APIKeyHeader: []
+      parameters:
+      - name: model_id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+          title: Model Id
+      responses:
+        '204':
+          description: Successful Response
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/v1/inference-jobs:
+    post:
+      tags:
+      - inference
+      summary: Create Inference Job
+      description: 'Create a new inference job.
+
+
+        The job is created in ''pending'' status. Add files using the upload endpoints,
+
+        then files will be queued for processing automatically.'
+      operationId: create_inference_job_api_v1_inference_jobs_post
+      security:
+      - HTTPBearer: []
+      - APIKeyHeader: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/InferenceJobCreate'
+      responses:
+        '201':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/InferenceJobResponse'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+    get:
+      tags:
+      - inference
+      summary: List Inference Jobs
+      description: List inference jobs for the tenant.
+      operationId: list_inference_jobs_api_v1_inference_jobs_get
+      security:
+      - HTTPBearer: []
+      - APIKeyHeader: []
+      parameters:
+      - name: model_id
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: string
+            format: uuid
+          - type: 'null'
+          title: Model Id
+      - name: status
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Status
+      - name: page
+        in: query
+        required: false
+        schema:
+          type: integer
+          minimum: 1
+          default: 1
+          title: Page
+      - name: page_size
+        in: query
+        required: false
+        schema:
+          type: integer
+          maximum: 100
+          minimum: 1
+          default: 20
+          title: Page Size
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/InferenceJobListResponse'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/v1/inference-jobs/{job_id}:
+    get:
+      tags:
+      - inference
+      summary: Get Inference Job
+      description: Get inference job details with files and detections.
+      operationId: get_inference_job_api_v1_inference_jobs__job_id__get
+      security:
+      - HTTPBearer: []
+      - APIKeyHeader: []
+      parameters:
+      - name: job_id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+          title: Job Id
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/InferenceJobDetailResponse'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+    delete:
+      tags:
+      - inference
+      summary: Cancel Inference Job
+      description: Cancel a pending or processing inference job.
+      operationId: cancel_inference_job_api_v1_inference_jobs__job_id__delete
+      security:
+      - HTTPBearer: []
+      - APIKeyHeader: []
+      parameters:
+      - name: job_id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+          title: Job Id
+      responses:
+        '204':
+          description: Successful Response
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/v1/inference-jobs/{job_id}/files:
+    get:
+      tags:
+      - inference
+      summary: List Inference Files
+      description: List files in an inference job.
+      operationId: list_inference_files_api_v1_inference_jobs__job_id__files_get
+      security:
+      - HTTPBearer: []
+      - APIKeyHeader: []
+      parameters:
+      - name: job_id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+          title: Job Id
+      - name: status
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Status
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/InferenceFileListResponse'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/v1/inference-jobs/{job_id}/files/{file_id}:
+    get:
+      tags:
+      - inference
+      summary: Get Inference File
+      description: Get inference file with detections.
+      operationId: get_inference_file_api_v1_inference_jobs__job_id__files__file_id__get
+      security:
+      - HTTPBearer: []
+      - APIKeyHeader: []
+      parameters:
+      - name: job_id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+          title: Job Id
+      - name: file_id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+          title: File Id
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/InferenceFileResponse'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/v1/inference-jobs/{job_id}/files/upload-url:
+    post:
+      tags:
+      - inference
+      summary: Get File Upload Url
+      description: 'Get a presigned URL to upload a file for inference.
+
+
+        Returns a presigned URL that can be used to upload the file directly to S3.
+
+        After upload, call confirm endpoint to start processing.'
+      operationId: get_file_upload_url_api_v1_inference_jobs__job_id__files_upload_url_post
+      security:
+      - HTTPBearer: []
+      - APIKeyHeader: []
+      parameters:
+      - name: job_id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+          title: Job Id
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/InferenceFileCreate'
+      responses:
+        '201':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/InferenceFileUploadResponse'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/v1/inference-jobs/{job_id}/files/confirm:
+    post:
+      tags:
+      - inference
+      summary: Confirm File Upload
+      description: 'Confirm file upload and queue for processing.
+
+
+        Call this after uploading the file to S3 using the presigned URL.
+
+        This will queue the file for inference processing.'
+      operationId: confirm_file_upload_api_v1_inference_jobs__job_id__files_confirm_post
+      security:
+      - HTTPBearer: []
+      - APIKeyHeader: []
+      parameters:
+      - name: job_id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+          title: Job Id
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/InferenceFileConfirm'
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/InferenceFileResponse'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/v1/inference-jobs/{job_id}/files/{file_id}/download-url:
+    get:
+      tags:
+      - inference
+      summary: Get File Download Url
+      description: Get a presigned URL to download the original audio file.
+      operationId: get_file_download_url_api_v1_inference_jobs__job_id__files__file_id__download_url_get
+      security:
+      - HTTPBearer: []
+      - APIKeyHeader: []
+      parameters:
+      - name: job_id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+          title: Job Id
+      - name: file_id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+          title: File Id
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+                title: Response Get File Download Url Api V1 Inference Jobs  Job Id  Files  File
+                  Id  Download Url Get
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/v1/billing/checkout:
+    post:
+      tags:
+      - billing
+      summary: Create Checkout Session
+      description: 'Create a Stripe checkout session for subscription.
+
+
+        This redirects the user to Stripe''s hosted checkout page.
+
+        After successful payment, Stripe sends a webhook to confirm.'
+      operationId: create_checkout_session_api_v1_billing_checkout_post
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateCheckoutRequest'
+        required: true
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CheckoutResponse'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+      security:
+      - HTTPBearer: []
+      - APIKeyHeader: []
+  /api/v1/billing/subscription:
+    get:
+      tags:
+      - billing
+      summary: Get Subscription
+      description: Get current subscription status and details.
+      operationId: get_subscription_api_v1_billing_subscription_get
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SubscriptionResponse'
+      security:
+      - HTTPBearer: []
+      - APIKeyHeader: []
+  /api/v1/billing/usage:
+    get:
+      tags:
+      - billing
+      summary: Get Usage
+      description: Get current billing period usage.
+      operationId: get_usage_api_v1_billing_usage_get
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UsageResponse'
+      security:
+      - HTTPBearer: []
+      - APIKeyHeader: []
+  /api/v1/billing/usage/history:
+    get:
+      tags:
+      - billing
+      summary: Get Usage History
+      description: Get monthly usage history.
+      operationId: get_usage_history_api_v1_billing_usage_history_get
+      security:
+      - HTTPBearer: []
+      - APIKeyHeader: []
+      parameters:
+      - name: months
+        in: query
+        required: false
+        schema:
+          type: integer
+          default: 6
+          title: Months
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/UsageHistoryItem'
+                title: Response Get Usage History Api V1 Billing Usage History Get
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/v1/billing/sync-usage:
+    post:
+      tags:
+      - billing
+      summary: Sync Usage To Stripe
+      description: 'Manually sync usage to Stripe (for testing).
+
+
+        In production, this runs as a scheduled job.'
+      operationId: sync_usage_to_stripe_api_v1_billing_sync_usage_post
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                additionalProperties: true
+                type: object
+                title: Response Sync Usage To Stripe Api V1 Billing Sync Usage Post
+      security:
+      - HTTPBearer: []
+      - APIKeyHeader: []
+  /api/v1/webhooks/stripe:
+    post:
+      tags:
+      - webhooks
+      summary: Stripe Webhook
+      description: 'Handle Stripe webhook events.
+
+
+        Events handled:
+
+        - checkout.session.completed: Subscription created
+
+        - customer.subscription.updated: Subscription changed
+
+        - customer.subscription.deleted: Subscription canceled
+
+        - invoice.payment_failed: Payment failed'
+      operationId: stripe_webhook_api_v1_webhooks_stripe_post
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                additionalProperties:
+                  type: string
+                type: object
+                title: Response Stripe Webhook Api V1 Webhooks Stripe Post
+  /health:
+    get:
+      summary: Health Check
+      description: Health check endpoint.
+      operationId: health_check_health_get
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                additionalProperties:
+                  type: string
+                type: object
+                title: Response Health Check Health Get
+components:
+  schemas:
+    AnnotationBulkCreate:
+      properties:
+        annotations:
+          items:
+            $ref: '#/components/schemas/AnnotationCreate'
+          type: array
+          title: Annotations
+      type: object
+      required:
+      - annotations
+      title: AnnotationBulkCreate
+      description: Request to create multiple annotations at once.
+    AnnotationBulkResponse:
+      properties:
+        created:
+          type: integer
+          title: Created
+        annotations:
+          items:
+            $ref: '#/components/schemas/AnnotationResponse'
+          type: array
+          title: Annotations
+      type: object
+      required:
+      - created
+      - annotations
+      title: AnnotationBulkResponse
+      description: Response for bulk annotation creation.
+    AnnotationCreate:
+      properties:
+        audio_file_id:
+          type: string
+          format: uuid
+          title: Audio File Id
+        artifact_type:
+          type: string
+          maxLength: 100
+          minLength: 1
+          title: Artifact Type
+        start_ms:
+          type: integer
+          minimum: 0.0
+          title: Start Ms
+        end_ms:
+          type: integer
+          exclusiveMinimum: 0.0
+          title: End Ms
+        confidence:
+          type: number
+          maximum: 1.0
+          minimum: 0.0
+          title: Confidence
+          default: 1.0
+        extra_data:
+          anyOf:
+          - additionalProperties: true
+            type: object
+          - type: 'null'
+          title: Extra Data
+      type: object
+      required:
+      - audio_file_id
+      - artifact_type
+      - start_ms
+      - end_ms
+      title: AnnotationCreate
+      description: Request to create an annotation.
+    AnnotationResponse:
+      properties:
+        id:
+          type: string
+          format: uuid
+          title: Id
+        annotation_set_id:
+          type: string
+          format: uuid
+          title: Annotation Set Id
+        audio_file_id:
+          type: string
+          format: uuid
+          title: Audio File Id
+        artifact_type:
+          type: string
+          title: Artifact Type
+        start_ms:
+          type: integer
+          title: Start Ms
+        end_ms:
+          type: integer
+          title: End Ms
+        confidence:
+          type: number
+          title: Confidence
+        extra_data:
+          additionalProperties: true
+          type: object
+          title: Extra Data
+        created_at:
+          type: string
+          format: date-time
+          title: Created At
+      type: object
+      required:
+      - id
+      - annotation_set_id
+      - audio_file_id
+      - artifact_type
+      - start_ms
+      - end_ms
+      - confidence
+      - extra_data
+      - created_at
+      title: AnnotationResponse
+      description: Annotation response.
+    AnnotationSetListResponse:
+      properties:
+        items:
+          items:
+            $ref: '#/components/schemas/AnnotationSetResponse'
+          type: array
+          title: Items
+        total:
+          type: integer
+          title: Total
+      type: object
+      required:
+      - items
+      - total
+      title: AnnotationSetListResponse
+      description: List of annotation sets.
+    AnnotationSetResponse:
+      properties:
+        id:
+          type: string
+          format: uuid
+          title: Id
+        dataset_id:
+          type: string
+          format: uuid
+          title: Dataset Id
+        version:
+          type: integer
+          title: Version
+        status:
+          type: string
+          title: Status
+        total_annotations:
+          type: integer
+          title: Total Annotations
+        total_positive_duration_ms:
+          type: integer
+          title: Total Positive Duration Ms
+        annotations_by_type:
+          additionalProperties: true
+          type: object
+          title: Annotations By Type
+        created_at:
+          type: string
+          format: date-time
+          title: Created At
+        published_at:
+          anyOf:
+          - type: string
+            format: date-time
+          - type: 'null'
+          title: Published At
+      type: object
+      required:
+      - id
+      - dataset_id
+      - version
+      - status
+      - total_annotations
+      - total_positive_duration_ms
+      - annotations_by_type
+      - created_at
+      - published_at
+      title: AnnotationSetResponse
+      description: Annotation set response.
+    AnnotationSetWithAnnotations:
+      properties:
+        id:
+          type: string
+          format: uuid
+          title: Id
+        dataset_id:
+          type: string
+          format: uuid
+          title: Dataset Id
+        version:
+          type: integer
+          title: Version
+        status:
+          type: string
+          title: Status
+        total_annotations:
+          type: integer
+          title: Total Annotations
+        total_positive_duration_ms:
+          type: integer
+          title: Total Positive Duration Ms
+        annotations_by_type:
+          additionalProperties: true
+          type: object
+          title: Annotations By Type
+        created_at:
+          type: string
+          format: date-time
+          title: Created At
+        published_at:
+          anyOf:
+          - type: string
+            format: date-time
+          - type: 'null'
+          title: Published At
+        annotations:
+          items:
+            $ref: '#/components/schemas/AnnotationResponse'
+          type: array
+          title: Annotations
+      type: object
+      required:
+      - id
+      - dataset_id
+      - version
+      - status
+      - total_annotations
+      - total_positive_duration_ms
+      - annotations_by_type
+      - created_at
+      - published_at
+      - annotations
+      title: AnnotationSetWithAnnotations
+      description: Annotation set with its annotations.
+    AnnotationUpdate:
+      properties:
+        artifact_type:
+          anyOf:
+          - type: string
+            maxLength: 100
+            minLength: 1
+          - type: 'null'
+          title: Artifact Type
+        start_ms:
+          anyOf:
+          - type: integer
+            minimum: 0.0
+          - type: 'null'
+          title: Start Ms
+        end_ms:
+          anyOf:
+          - type: integer
+            exclusiveMinimum: 0.0
+          - type: 'null'
+          title: End Ms
+        confidence:
+          anyOf:
+          - type: number
+            maximum: 1.0
+            minimum: 0.0
+          - type: 'null'
+          title: Confidence
+        extra_data:
+          anyOf:
+          - additionalProperties: true
+            type: object
+          - type: 'null'
+          title: Extra Data
+      type: object
+      title: AnnotationUpdate
+      description: Request to update an annotation.
+    ApiKeyCreate:
+      properties:
+        name:
+          type: string
+          maxLength: 255
+          minLength: 1
+          title: Name
+        scopes:
+          anyOf:
+          - items:
+              type: string
+            type: array
+          - type: 'null'
+          title: Scopes
+        expires_at:
+          anyOf:
+          - type: string
+            format: date-time
+          - type: 'null'
+          title: Expires At
+      type: object
+      required:
+      - name
+      title: ApiKeyCreate
+      description: Request schema for creating an API key.
+    ApiKeyResponse:
+      properties:
+        id:
+          type: string
+          format: uuid
+          title: Id
+        name:
+          type: string
+          title: Name
+        key_prefix:
+          type: string
+          title: Key Prefix
+        key:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Key
+        scopes:
+          items:
+            type: string
+          type: array
+          title: Scopes
+        created_at:
+          type: string
+          format: date-time
+          title: Created At
+        expires_at:
+          anyOf:
+          - type: string
+            format: date-time
+          - type: 'null'
+          title: Expires At
+        last_used_at:
+          anyOf:
+          - type: string
+            format: date-time
+          - type: 'null'
+          title: Last Used At
+      type: object
+      required:
+      - id
+      - name
+      - key_prefix
+      - scopes
+      - created_at
+      title: ApiKeyResponse
+      description: Response schema for API key.
+    ArtifactType:
+      properties:
+        name:
+          type: string
+          maxLength: 100
+          minLength: 1
+          title: Name
+        description:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Description
+        color:
+          type: string
+          pattern: ^#[0-9A-Fa-f]{6}$
+          title: Color
+          default: '#FF0000'
+      type: object
+      required:
+      - name
+      title: ArtifactType
+      description: Schema for artifact type definition.
+    AudioFileResponse:
+      properties:
+        id:
+          type: string
+          format: uuid
+          title: Id
+        dataset_id:
+          type: string
+          format: uuid
+          title: Dataset Id
+        original_filename:
+          type: string
+          title: Original Filename
+        file_size_bytes:
+          type: integer
+          title: File Size Bytes
+        duration_ms:
+          anyOf:
+          - type: integer
+          - type: 'null'
+          title: Duration Ms
+        sample_rate:
+          type: integer
+          title: Sample Rate
+        processing_status:
+          type: string
+          enum:
+          - pending
+          - normalizing
+          - embedding
+          - ready
+          - failed
+          title: Processing Status
+        processing_error:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Processing Error
+        chunk_count:
+          anyOf:
+          - type: integer
+          - type: 'null'
+          title: Chunk Count
+        created_at:
+          type: string
+          format: date-time
+          title: Created At
+        updated_at:
+          type: string
+          format: date-time
+          title: Updated At
+      type: object
+      required:
+      - id
+      - dataset_id
+      - original_filename
+      - file_size_bytes
+      - duration_ms
+      - sample_rate
+      - processing_status
+      - processing_error
+      - chunk_count
+      - created_at
+      - updated_at
+      title: AudioFileResponse
+      description: Response schema for an audio file.
+    AudioFileSummary:
+      properties:
+        id:
+          type: string
+          format: uuid
+          title: Id
+        original_filename:
+          type: string
+          title: Original Filename
+        file_size_bytes:
+          type: integer
+          title: File Size Bytes
+        duration_ms:
+          anyOf:
+          - type: integer
+          - type: 'null'
+          title: Duration Ms
+        processing_status:
+          type: string
+          enum:
+          - pending
+          - normalizing
+          - embedding
+          - ready
+          - failed
+          title: Processing Status
+        created_at:
+          type: string
+          format: date-time
+          title: Created At
+      type: object
+      required:
+      - id
+      - original_filename
+      - file_size_bytes
+      - duration_ms
+      - processing_status
+      - created_at
+      title: AudioFileSummary
+      description: Summary response for audio file listing.
+    AudioListResponse:
+      properties:
+        items:
+          items:
+            $ref: '#/components/schemas/AudioFileSummary'
+          type: array
+          title: Items
+        total:
+          type: integer
+          title: Total
+        page:
+          type: integer
+          title: Page
+        page_size:
+          type: integer
+          title: Page Size
+        has_more:
+          type: boolean
+          title: Has More
+      type: object
+      required:
+      - items
+      - total
+      - page
+      - page_size
+      - has_more
+      title: AudioListResponse
+      description: Paginated audio file list response.
+    CheckoutResponse:
+      properties:
+        checkout_url:
+          type: string
+          title: Checkout Url
+        session_id:
+          type: string
+          title: Session Id
+      type: object
+      required:
+      - checkout_url
+      - session_id
+      title: CheckoutResponse
+      description: Response with checkout URL.
+    ConfirmUploadRequest:
+      properties:
+        audio_id:
+          type: string
+          format: uuid
+          title: Audio Id
+          description: ID of the audio file to confirm
+      type: object
+      required:
+      - audio_id
+      title: ConfirmUploadRequest
+      description: Request schema for confirming an upload.
+    ConfirmUploadResponse:
+      properties:
+        audio_id:
+          type: string
+          format: uuid
+          title: Audio Id
+        status:
+          type: string
+          enum:
+          - pending
+          - normalizing
+          - embedding
+          - ready
+          - failed
+          title: Status
+        message:
+          type: string
+          title: Message
+      type: object
+      required:
+      - audio_id
+      - status
+      - message
+      title: ConfirmUploadResponse
+      description: Response schema for upload confirmation.
+    CreateCheckoutRequest:
+      properties:
+        plan:
+          $ref: '#/components/schemas/PlanType'
+        success_url:
+          type: string
+          title: Success Url
+        cancel_url:
+          type: string
+          title: Cancel Url
+      type: object
+      required:
+      - plan
+      - success_url
+      - cancel_url
+      title: CreateCheckoutRequest
+      description: Request to create a checkout session.
+    DatasetCreate:
+      properties:
+        name:
+          type: string
+          maxLength: 255
+          minLength: 1
+          title: Name
+        description:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Description
+        artifact_types:
+          items:
+            $ref: '#/components/schemas/ArtifactType'
+          type: array
+          title: Artifact Types
+      type: object
+      required:
+      - name
+      title: DatasetCreate
+      description: Request schema for creating a dataset.
+    DatasetResponse:
+      properties:
+        id:
+          type: string
+          format: uuid
+          title: Id
+        name:
+          type: string
+          title: Name
+        description:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Description
+        artifact_types:
+          items:
+            additionalProperties: true
+            type: object
+          type: array
+          title: Artifact Types
+        created_at:
+          type: string
+          format: date-time
+          title: Created At
+        updated_at:
+          type: string
+          format: date-time
+          title: Updated At
+      type: object
+      required:
+      - id
+      - name
+      - description
+      - artifact_types
+      - created_at
+      - updated_at
+      title: DatasetResponse
+      description: Response schema for a dataset.
+    DatasetUpdate:
+      properties:
+        name:
+          anyOf:
+          - type: string
+            maxLength: 255
+            minLength: 1
+          - type: 'null'
+          title: Name
+        description:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Description
+        artifact_types:
+          anyOf:
+          - items:
+              $ref: '#/components/schemas/ArtifactType'
+            type: array
+          - type: 'null'
+          title: Artifact Types
+      type: object
+      title: DatasetUpdate
+      description: Request schema for updating a dataset.
+    DatasetWithStats:
+      properties:
+        id:
+          type: string
+          format: uuid
+          title: Id
+        name:
+          type: string
+          title: Name
+        description:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Description
+        artifact_types:
+          items:
+            additionalProperties: true
+            type: object
+          type: array
+          title: Artifact Types
+        created_at:
+          type: string
+          format: date-time
+          title: Created At
+        updated_at:
+          type: string
+          format: date-time
+          title: Updated At
+        audio_count:
+          type: integer
+          title: Audio Count
+          default: 0
+        annotation_set_count:
+          type: integer
+          title: Annotation Set Count
+          default: 0
+      type: object
+      required:
+      - id
+      - name
+      - description
+      - artifact_types
+      - created_at
+      - updated_at
+      title: DatasetWithStats
+      description: Dataset response with statistics.
+    Detection:
+      properties:
+        artifact_type:
+          type: string
+          title: Artifact Type
+        start_ms:
+          type: integer
+          title: Start Ms
+        end_ms:
+          type: integer
+          title: End Ms
+        confidence:
+          type: number
+          maximum: 1.0
+          minimum: 0.0
+          title: Confidence
+      type: object
+      required:
+      - artifact_type
+      - start_ms
+      - end_ms
+      - confidence
+      title: Detection
+      description: Single detection result.
+    DownloadUrlResponse:
+      properties:
+        download_url:
+          type: string
+          title: Download Url
+        filename:
+          type: string
+          title: Filename
+        expires_in:
+          type: integer
+          title: Expires In
+      type: object
+      required:
+      - download_url
+      - filename
+      - expires_in
+      title: DownloadUrlResponse
+      description: Response schema for download URL generation.
+    HTTPValidationError:
+      properties:
+        detail:
+          items:
+            $ref: '#/components/schemas/ValidationError'
+          type: array
+          title: Detail
+      type: object
+      title: HTTPValidationError
+    InferenceConfig:
+      properties:
+        threshold:
+          type: number
+          maximum: 1.0
+          minimum: 0.0
+          title: Threshold
+          default: 0.5
+        merge_window_ms:
+          type: integer
+          maximum: 5000.0
+          minimum: 0.0
+          title: Merge Window Ms
+          default: 200
+        min_duration_ms:
+          type: integer
+          maximum: 1000.0
+          minimum: 0.0
+          title: Min Duration Ms
+          default: 50
+      type: object
+      title: InferenceConfig
+      description: Configuration for inference job.
+    InferenceFileConfirm:
+      properties:
+        file_id:
+          type: string
+          format: uuid
+          title: File Id
+      type: object
+      required:
+      - file_id
+      title: InferenceFileConfirm
+      description: Request to confirm file upload.
+    InferenceFileCreate:
+      properties:
+        filename:
+          type: string
+          maxLength: 500
+          minLength: 1
+          title: Filename
+        content_type:
+          type: string
+          title: Content Type
+          default: audio/wav
+        file_size_bytes:
+          type: integer
+          maximum: 524288000.0
+          exclusiveMinimum: 0.0
+          title: File Size Bytes
+      type: object
+      required:
+      - filename
+      - file_size_bytes
+      title: InferenceFileCreate
+      description: Request to add a file to inference job via presigned upload.
+    InferenceFileListResponse:
+      properties:
+        items:
+          items:
+            $ref: '#/components/schemas/InferenceFileResponse'
+          type: array
+          title: Items
+        total:
+          type: integer
+          title: Total
+      type: object
+      required:
+      - items
+      - total
+      title: InferenceFileListResponse
+      description: List of inference files.
+    InferenceFileResponse:
+      properties:
+        id:
+          type: string
+          format: uuid
+          title: Id
+        inference_job_id:
+          type: string
+          format: uuid
+          title: Inference Job Id
+        original_filename:
+          type: string
+          title: Original Filename
+        s3_key:
+          type: string
+          title: S3 Key
+        duration_ms:
+          anyOf:
+          - type: integer
+          - type: 'null'
+          title: Duration Ms
+        status:
+          type: string
+          title: Status
+        error_message:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Error Message
+        detections:
+          anyOf:
+          - items:
+              $ref: '#/components/schemas/Detection'
+            type: array
+          - type: 'null'
+          title: Detections
+        detection_count:
+          type: integer
+          title: Detection Count
+        processed_at:
+          anyOf:
+          - type: string
+            format: date-time
+          - type: 'null'
+          title: Processed At
+      type: object
+      required:
+      - id
+      - inference_job_id
+      - original_filename
+      - s3_key
+      - duration_ms
+      - status
+      - error_message
+      - detections
+      - detection_count
+      - processed_at
+      title: InferenceFileResponse
+      description: Inference file response.
+    InferenceFileUploadResponse:
+      properties:
+        file_id:
+          type: string
+          format: uuid
+          title: File Id
+        upload_url:
+          type: string
+          title: Upload Url
+        upload_fields:
+          additionalProperties: true
+          type: object
+          title: Upload Fields
+        s3_key:
+          type: string
+          title: S3 Key
+        expires_in:
+          type: integer
+          title: Expires In
+      type: object
+      required:
+      - file_id
+      - upload_url
+      - upload_fields
+      - s3_key
+      - expires_in
+      title: InferenceFileUploadResponse
+      description: Response with presigned upload URL for inference file.
+    InferenceJobCreate:
+      properties:
+        model_id:
+          type: string
+          format: uuid
+          title: Model Id
+        config:
+          $ref: '#/components/schemas/InferenceConfig'
+      type: object
+      required:
+      - model_id
+      title: InferenceJobCreate
+      description: Request to create an inference job.
+    InferenceJobDetailResponse:
+      properties:
+        id:
+          type: string
+          format: uuid
+          title: Id
+        tenant_id:
+          type: string
+          format: uuid
+          title: Tenant Id
+        model_id:
+          type: string
+          format: uuid
+          title: Model Id
+        config:
+          additionalProperties: true
+          type: object
+          title: Config
+        status:
+          type: string
+          title: Status
+        total_files:
+          type: integer
+          title: Total Files
+        processed_files:
+          type: integer
+          title: Processed Files
+        failed_files:
+          type: integer
+          title: Failed Files
+        total_detections:
+          type: integer
+          title: Total Detections
+        error_message:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Error Message
+        created_at:
+          type: string
+          format: date-time
+          title: Created At
+        started_at:
+          anyOf:
+          - type: string
+            format: date-time
+          - type: 'null'
+          title: Started At
+        completed_at:
+          anyOf:
+          - type: string
+            format: date-time
+          - type: 'null'
+          title: Completed At
+        files:
+          items:
+            $ref: '#/components/schemas/InferenceFileResponse'
+          type: array
+          title: Files
+      type: object
+      required:
+      - id
+      - tenant_id
+      - model_id
+      - config
+      - status
+      - total_files
+      - processed_files
+      - failed_files
+      - total_detections
+      - error_message
+      - created_at
+      - started_at
+      - completed_at
+      - files
+      title: InferenceJobDetailResponse
+      description: Inference job detail with files.
+    InferenceJobListResponse:
+      properties:
+        items:
+          items:
+            $ref: '#/components/schemas/InferenceJobResponse'
+          type: array
+          title: Items
+        total:
+          type: integer
+          title: Total
+        has_more:
+          type: boolean
+          title: Has More
+      type: object
+      required:
+      - items
+      - total
+      - has_more
+      title: InferenceJobListResponse
+      description: List of inference jobs.
+    InferenceJobResponse:
+      properties:
+        id:
+          type: string
+          format: uuid
+          title: Id
+        tenant_id:
+          type: string
+          format: uuid
+          title: Tenant Id
+        model_id:
+          type: string
+          format: uuid
+          title: Model Id
+        config:
+          additionalProperties: true
+          type: object
+          title: Config
+        status:
+          type: string
+          title: Status
+        total_files:
+          type: integer
+          title: Total Files
+        processed_files:
+          type: integer
+          title: Processed Files
+        failed_files:
+          type: integer
+          title: Failed Files
+        total_detections:
+          type: integer
+          title: Total Detections
+        error_message:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Error Message
+        created_at:
+          type: string
+          format: date-time
+          title: Created At
+        started_at:
+          anyOf:
+          - type: string
+            format: date-time
+          - type: 'null'
+          title: Started At
+        completed_at:
+          anyOf:
+          - type: string
+            format: date-time
+          - type: 'null'
+          title: Completed At
+      type: object
+      required:
+      - id
+      - tenant_id
+      - model_id
+      - config
+      - status
+      - total_files
+      - processed_files
+      - failed_files
+      - total_detections
+      - error_message
+      - created_at
+      - started_at
+      - completed_at
+      title: InferenceJobResponse
+      description: Inference job response.
+    LabelStudioAnnotation:
+      properties:
+        id:
+          type: integer
+          title: Id
+        completed_by:
+          type: integer
+          title: Completed By
+          default: 1
+        result:
+          items:
+            $ref: '#/components/schemas/LabelStudioRegion'
+          type: array
+          title: Result
+        was_cancelled:
+          type: boolean
+          title: Was Cancelled
+          default: false
+        ground_truth:
+          type: boolean
+          title: Ground Truth
+          default: true
+      type: object
+      required:
+      - id
+      - result
+      title: LabelStudioAnnotation
+      description: Label Studio annotation format.
+    LabelStudioExport:
+      properties:
+        tasks:
+          items:
+            $ref: '#/components/schemas/LabelStudioTask'
+          type: array
+          title: Tasks
+      type: object
+      required:
+      - tasks
+      title: LabelStudioExport
+      description: Full Label Studio export.
+    LabelStudioRegion:
+      properties:
+        id:
+          type: string
+          title: Id
+        from_name:
+          type: string
+          title: From Name
+          default: labels
+        to_name:
+          type: string
+          title: To Name
+          default: audio
+        type:
+          type: string
+          title: Type
+          default: labels
+        value:
+          additionalProperties: true
+          type: object
+          title: Value
+      type: object
+      required:
+      - id
+      - value
+      title: LabelStudioRegion
+      description: Label Studio region format for audio annotations.
+    LabelStudioTask:
+      properties:
+        id:
+          type: integer
+          title: Id
+        data:
+          additionalProperties: true
+          type: object
+          title: Data
+        annotations:
+          items:
+            $ref: '#/components/schemas/LabelStudioAnnotation'
+          type: array
+          title: Annotations
+      type: object
+      required:
+      - id
+      - data
+      - annotations
+      title: LabelStudioTask
+      description: Label Studio task export format.
+    LoginRequest:
+      properties:
+        email:
+          type: string
+          format: email
+          title: Email
+        password:
+          type: string
+          title: Password
+      type: object
+      required:
+      - email
+      - password
+      title: LoginRequest
+      description: Request schema for user login.
+    LoginResponse:
+      properties:
+        access_token:
+          type: string
+          title: Access Token
+        token_type:
+          type: string
+          title: Token Type
+          default: bearer
+        tenant:
+          $ref: '#/components/schemas/TenantResponse'
+      type: object
+      required:
+      - access_token
+      - tenant
+      title: LoginResponse
+      description: Response schema for login/signup.
+    ModelListResponse:
+      properties:
+        items:
+          items:
+            $ref: '#/components/schemas/ModelResponse'
+          type: array
+          title: Items
+        total:
+          type: integer
+          title: Total
+      type: object
+      required:
+      - items
+      - total
+      title: ModelListResponse
+      description: List of models.
+    ModelResponse:
+      properties:
+        id:
+          type: string
+          format: uuid
+          title: Id
+        tenant_id:
+          type: string
+          format: uuid
+          title: Tenant Id
+        training_job_id:
+          type: string
+          format: uuid
+          title: Training Job Id
+        name:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Name
+        description:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Description
+        artifact_types:
+          items:
+            type: string
+          type: array
+          title: Artifact Types
+        s3_key:
+          type: string
+          title: S3 Key
+        model_size_bytes:
+          anyOf:
+          - type: integer
+          - type: 'null'
+          title: Model Size Bytes
+        architecture:
+          additionalProperties: true
+          type: object
+          title: Architecture
+        eval_metrics:
+          anyOf:
+          - additionalProperties: true
+            type: object
+          - type: 'null'
+          title: Eval Metrics
+        is_active:
+          type: boolean
+          title: Is Active
+        created_at:
+          type: string
+          format: date-time
+          title: Created At
+        archived_at:
+          anyOf:
+          - type: string
+            format: date-time
+          - type: 'null'
+          title: Archived At
+      type: object
+      required:
+      - id
+      - tenant_id
+      - training_job_id
+      - name
+      - description
+      - artifact_types
+      - s3_key
+      - model_size_bytes
+      - architecture
+      - eval_metrics
+      - is_active
+      - created_at
+      - archived_at
+      title: ModelResponse
+      description: Model response.
+    ModelUpdate:
+      properties:
+        name:
+          anyOf:
+          - type: string
+            maxLength: 255
+          - type: 'null'
+          title: Name
+        description:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Description
+        is_active:
+          anyOf:
+          - type: boolean
+          - type: 'null'
+          title: Is Active
+      type: object
+      title: ModelUpdate
+      description: Request to update a model.
+    PlanType:
+      type: string
+      enum:
+      - free
+      - starter
+      - pro
+      - enterprise
+      title: PlanType
+      description: Available subscription plans.
+    SignupRequest:
+      properties:
+        name:
+          type: string
+          maxLength: 255
+          minLength: 1
+          title: Name
+        email:
+          type: string
+          format: email
+          title: Email
+        password:
+          type: string
+          maxLength: 128
+          minLength: 8
+          title: Password
+      type: object
+      required:
+      - name
+      - email
+      - password
+      title: SignupRequest
+      description: Request schema for user signup.
+    SubscriptionResponse:
+      properties:
+        plan:
+          type: string
+          title: Plan
+        status:
+          type: string
+          title: Status
+        current_period_start:
+          type: string
+          title: Current Period Start
+        current_period_end:
+          type: string
+          title: Current Period End
+        stripe_customer_id:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Stripe Customer Id
+        billing_portal_url:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Billing Portal Url
+      type: object
+      required:
+      - plan
+      - status
+      - current_period_start
+      - current_period_end
+      - stripe_customer_id
+      - billing_portal_url
+      title: SubscriptionResponse
+      description: Current subscription information.
+    TenantResponse:
+      properties:
+        id:
+          type: string
+          format: uuid
+          title: Id
+        name:
+          type: string
+          title: Name
+        email:
+          type: string
+          title: Email
+        created_at:
+          type: string
+          format: date-time
+          title: Created At
+      type: object
+      required:
+      - id
+      - name
+      - email
+      - created_at
+      title: TenantResponse
+      description: Response schema for tenant info.
+    TrainingConfig:
+      properties:
+        artifact_types:
+          items:
+            type: string
+          type: array
+          minItems: 1
+          title: Artifact Types
+        epochs:
+          type: integer
+          maximum: 100.0
+          minimum: 1.0
+          title: Epochs
+          default: 20
+        validation_split:
+          type: number
+          maximum: 0.5
+          minimum: 0.1
+          title: Validation Split
+          default: 0.2
+        learning_rate:
+          type: number
+          maximum: 0.1
+          minimum: 0.0001
+          title: Learning Rate
+          default: 0.001
+        batch_size:
+          type: integer
+          maximum: 256.0
+          minimum: 8.0
+          title: Batch Size
+          default: 32
+        chunk_size_ms:
+          type: integer
+          title: Chunk Size Ms
+          default: 500
+        stride_ms:
+          type: integer
+          title: Stride Ms
+          default: 250
+      type: object
+      required:
+      - artifact_types
+      title: TrainingConfig
+      description: Configuration for a training job.
+    TrainingJobCreate:
+      properties:
+        dataset_id:
+          type: string
+          format: uuid
+          title: Dataset Id
+        annotation_set_id:
+          type: string
+          format: uuid
+          title: Annotation Set Id
+        config:
+          $ref: '#/components/schemas/TrainingConfig'
+      type: object
+      required:
+      - dataset_id
+      - annotation_set_id
+      - config
+      title: TrainingJobCreate
+      description: Request to create a training job.
+    TrainingJobListResponse:
+      properties:
+        items:
+          items:
+            $ref: '#/components/schemas/TrainingJobResponse'
+          type: array
+          title: Items
+        total:
+          type: integer
+          title: Total
+        has_more:
+          type: boolean
+          title: Has More
+      type: object
+      required:
+      - items
+      - total
+      - has_more
+      title: TrainingJobListResponse
+      description: List of training jobs.
+    TrainingJobResponse:
+      properties:
+        id:
+          type: string
+          format: uuid
+          title: Id
+        tenant_id:
+          type: string
+          format: uuid
+          title: Tenant Id
+        dataset_id:
+          type: string
+          format: uuid
+          title: Dataset Id
+        annotation_set_id:
+          type: string
+          format: uuid
+          title: Annotation Set Id
+        config:
+          additionalProperties: true
+          type: object
+          title: Config
+        status:
+          type: string
+          title: Status
+        status_message:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Status Message
+        progress_percent:
+          type: integer
+          title: Progress Percent
+        metrics:
+          anyOf:
+          - additionalProperties: true
+            type: object
+          - type: 'null'
+          title: Metrics
+        error_message:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Error Message
+        sagemaker_job_name:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Sagemaker Job Name
+        created_at:
+          type: string
+          format: date-time
+          title: Created At
+        queued_at:
+          anyOf:
+          - type: string
+            format: date-time
+          - type: 'null'
+          title: Queued At
+        started_at:
+          anyOf:
+          - type: string
+            format: date-time
+          - type: 'null'
+          title: Started At
+        completed_at:
+          anyOf:
+          - type: string
+            format: date-time
+          - type: 'null'
+          title: Completed At
+      type: object
+      required:
+      - id
+      - tenant_id
+      - dataset_id
+      - annotation_set_id
+      - config
+      - status
+      - status_message
+      - progress_percent
+      - metrics
+      - error_message
+      - sagemaker_job_name
+      - created_at
+      - queued_at
+      - started_at
+      - completed_at
+      title: TrainingJobResponse
+      description: Training job response.
+    UploadUrlRequest:
+      properties:
+        filename:
+          type: string
+          maxLength: 500
+          minLength: 1
+          title: Filename
+        content_type:
+          type: string
+          title: Content Type
+          description: MIME type of the audio file
+        file_size:
+          type: integer
+          exclusiveMinimum: 0.0
+          title: File Size
+          description: File size in bytes
+      type: object
+      required:
+      - filename
+      - content_type
+      - file_size
+      title: UploadUrlRequest
+      description: Request schema for generating a presigned upload URL.
+    UploadUrlResponse:
+      properties:
+        upload_url:
+          type: string
+          title: Upload Url
+          description: Presigned URL for direct S3 upload
+        fields:
+          additionalProperties:
+            type: string
+          type: object
+          title: Fields
+          description: Form fields to include in POST request
+        key:
+          type: string
+          title: Key
+          description: S3 object key
+        expires_in:
+          type: integer
+          title: Expires In
+          description: URL expiration in seconds
+        audio_id:
+          type: string
+          format: uuid
+          title: Audio Id
+          description: ID of the created audio file record
+      type: object
+      required:
+      - upload_url
+      - fields
+      - key
+      - expires_in
+      - audio_id
+      title: UploadUrlResponse
+      description: Response schema for presigned upload URL.
+    UsageHistoryItem:
+      properties:
+        month:
+          type: string
+          title: Month
+        inference_minutes:
+          type: number
+          title: Inference Minutes
+        training_jobs:
+          type: integer
+          title: Training Jobs
+      type: object
+      required:
+      - month
+      - inference_minutes
+      - training_jobs
+      title: UsageHistoryItem
+      description: Monthly usage history item.
+    UsageResponse:
+      properties:
+        period_start:
+          type: string
+          title: Period Start
+        period_end:
+          type: string
+          title: Period End
+        inference_minutes:
+          type: number
+          title: Inference Minutes
+        training_jobs:
+          type: integer
+          title: Training Jobs
+        storage_gb:
+          type: number
+          title: Storage Gb
+        inference_limit:
+          type: integer
+          title: Inference Limit
+        training_limit:
+          type: integer
+          title: Training Limit
+        inference_remaining:
+          type: number
+          title: Inference Remaining
+        training_remaining:
+          type: integer
+          title: Training Remaining
+        overage_minutes:
+          type: number
+          title: Overage Minutes
+        overage_cost:
+          type: number
+          title: Overage Cost
+      type: object
+      required:
+      - period_start
+      - period_end
+      - inference_minutes
+      - training_jobs
+      - storage_gb
+      - inference_limit
+      - training_limit
+      - inference_remaining
+      - training_remaining
+      - overage_minutes
+      - overage_cost
+      title: UsageResponse
+      description: Current usage summary.
+    ValidationError:
+      properties:
+        loc:
+          items:
+            anyOf:
+            - type: string
+            - type: integer
+          type: array
+          title: Location
+        msg:
+          type: string
+          title: Message
+        type:
+          type: string
+          title: Error Type
+      type: object
+      required:
+      - loc
+      - msg
+      - type
+      title: ValidationError
+  securitySchemes:
+    HTTPBearer:
+      type: http
+      scheme: bearer
+    APIKeyHeader:
+      type: apiKey
+      in: header
+      name: X-API-Key

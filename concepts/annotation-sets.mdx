@@ -1,0 +1,235 @@
+---
+title: "Annotation Sets"
+description: "Version and manage annotations for reproducible training"
+---
+
+Annotation sets group annotations together with versioning support. This enables reproducible training and iteration on your labels.
+
+## Why annotation sets?
+
+Annotation sets provide:
+
+- **Versioning**: Track changes to your annotations over time
+- **Immutability**: Published sets cannot be modified, ensuring reproducibility
+- **Iteration**: Create new versions to improve labels without losing history
+
+## Draft vs Published
+
+Annotation sets have two states:
+
+### Draft
+
+- **Editable**: Add, update, and delete annotations
+- **Cannot train**: Draft sets cannot be used for training
+- **Use for**: Active labeling, experimentation
+
+### Published
+
+- **Immutable**: No changes allowed
+- **Can train**: Required for training models
+- **Use for**: Final labels, reproducible experiments
+
+```
+Draft                          Published
+┌─────────────────────┐       ┌─────────────────────┐
+│ ✏️ Add annotations   │       │ 🔒 Locked            │
+│ ✏️ Edit annotations  │  ──►  │ 📊 Stats computed    │
+│ 🗑️ Delete annotations│       │ 🤖 Ready for training│
+└─────────────────────┘       └─────────────────────┘
+        publish()
+```
+
+## Creating annotation sets
+
+Create a new draft annotation set:
+
+```python Python
+response = requests.post(
+    f"{BASE_URL}/api/v1/datasets/{dataset_id}/annotation-sets",
+    headers={"X-API-Key": API_KEY}
+)
+annotation_set = response.json()
+print(f"Created v{annotation_set['version']} (status: {annotation_set['status']})")
+```
+
+Version numbers auto-increment: v1, v2, v3, etc.
+
+## Listing annotation sets
+
+```python Python
+response = requests.get(
+    f"{BASE_URL}/api/v1/datasets/{dataset_id}/annotation-sets",
+    headers={"X-API-Key": API_KEY}
+)
+sets = response.json()
+
+for s in sets["items"]:
+    print(f"v{s['version']}: {s['status']} - {s['total_annotations']} annotations")
+```
+
+Output:
+
+```
+v1: published - 450 annotations
+v2: published - 520 annotations
+v3: draft - 580 annotations
+```
+
+## Publishing
+
+Publish a set to lock it for training:
+
+```python Python
+response = requests.post(
+    f"{BASE_URL}/api/v1/datasets/{dataset_id}/annotation-sets/{annotation_set_id}/publish",
+    headers={"X-API-Key": API_KEY}
+)
+published = response.json()
+print(f"Published at: {published['published_at']}")
+```
+
+When publishing:
+1. Statistics are computed (total annotations, duration by type, etc.)
+2. The set is locked from further edits
+3. The set becomes available for training
+
+<Warning>
+Publishing is irreversible. If you need to make changes, create a new annotation set.
+</Warning>
+
+## Annotation set statistics
+
+Published sets include computed statistics:
+
+```json
+{
+  "id": "annotation-set-uuid",
+  "version": 2,
+  "status": "published",
+  "total_annotations": 520,
+  "total_positive_duration_ms": 45000,
+  "annotations_by_type": {
+    "glitch": 280,
+    "long_pause": 180,
+    "hallucination": 60
+  },
+  "created_at": "2024-01-10T10:00:00Z",
+  "published_at": "2024-01-15T14:30:00Z"
+}
+```
+
+| Field | Description |
+|-------|-------------|
+| `total_annotations` | Total number of annotations |
+| `total_positive_duration_ms` | Total time covered by annotations |
+| `annotations_by_type` | Count per artifact type |
+| `published_at` | When the set was published |
+
+## Iteration workflow
+
+A typical workflow for improving annotations:
+
+```
+v1 (published)
+│   Initial labels, train first model
+│
+├── Review model performance
+│   - False positives: should have been labeled differently
+│   - False negatives: artifacts that weren't labeled
+│
+v2 (draft → published)
+│   Fix issues found in v1, train improved model
+│
+├── Review model performance again
+│
+v3 (draft → published)
+    Further refinements
+```
+
+### Creating a new version
+
+When you need to update labels:
+
+1. Create a new annotation set (starts as draft)
+2. Copy annotations from previous version (if desired)
+3. Add, edit, or delete annotations
+4. Publish when ready
+
+```python Python
+# Create new version
+response = requests.post(
+    f"{BASE_URL}/api/v1/datasets/{dataset_id}/annotation-sets",
+    headers={"X-API-Key": API_KEY}
+)
+new_set = response.json()
+
+# Get annotations from previous version
+response = requests.get(
+    f"{BASE_URL}/api/v1/datasets/{dataset_id}/annotation-sets/{old_set_id}/annotations",
+    headers={"X-API-Key": API_KEY}
+)
+old_annotations = response.json()
+
+# Copy to new set (removing IDs)
+annotations_to_copy = [
+    {
+        "audio_file_id": a["audio_file_id"],
+        "artifact_type": a["artifact_type"],
+        "start_ms": a["start_ms"],
+        "end_ms": a["end_ms"],
+        "confidence": a["confidence"]
+    }
+    for a in old_annotations
+]
+
+response = requests.post(
+    f"{BASE_URL}/api/v1/datasets/{dataset_id}/annotation-sets/{new_set['id']}/annotations/bulk",
+    headers={"X-API-Key": API_KEY},
+    json={"annotations": annotations_to_copy}
+)
+```
+
+## Deleting annotation sets
+
+Only draft sets can be deleted:
+
+```python Python
+response = requests.delete(
+    f"{BASE_URL}/api/v1/datasets/{dataset_id}/annotation-sets/{annotation_set_id}",
+    headers={"X-API-Key": API_KEY}
+)
+```
+
+<Note>
+Published annotation sets cannot be deleted because they may be referenced by trained models.
+</Note>
+
+## Best practices
+
+### Don't publish too early
+
+Keep sets in draft while actively labeling:
+- Run quality checks before publishing
+- Have another person review labels
+- Verify coverage across all artifact types
+
+### Track what changed
+
+When creating new versions, document the changes:
+
+```python Python
+# Use extra_data or a separate log to track changes
+changes = """
+v2 changes from v1:
+- Added 70 new glitch annotations
+- Fixed 15 incorrectly labeled pauses
+- Removed 5 duplicate annotations
+"""
+```
+
+### One set per training run
+
+Use one published annotation set per training job:
+- Makes it clear which labels produced which model
+- Enables comparison between different labeling approaches
+- Supports A/B testing of different annotation strategies

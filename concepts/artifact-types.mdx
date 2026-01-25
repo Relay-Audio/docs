@@ -1,0 +1,286 @@
+---
+title: "Artifact Types"
+description: "Define the categories of audio artifacts to detect"
+---
+
+Artifact types define what your model will learn to detect. Each type represents a specific kind of audio issue.
+
+## What are artifact types?
+
+Artifact types are categories that:
+
+- Label annotations during training
+- Categorize detections during inference
+- Help organize and filter results
+
+```json
+{
+  "name": "glitch",
+  "description": "Audio pop, click, or distortion",
+  "color": "#FF4444"
+}
+```
+
+## Artifact type structure
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `name` | string | Yes | Unique identifier (1-100 characters) |
+| `description` | string | No | Human-readable explanation |
+| `color` | string | No | Hex color for visualization (default: #FF0000) |
+
+## Defining artifact types
+
+Define types when creating a dataset:
+
+```python Python
+response = requests.post(
+    f"{BASE_URL}/api/v1/datasets",
+    headers={"X-API-Key": API_KEY},
+    json={
+        "name": "TTS Quality Detection",
+        "artifact_types": [
+            {
+                "name": "glitch",
+                "description": "Audio pop, click, or digital distortion",
+                "color": "#FF4444"
+            },
+            {
+                "name": "long_pause",
+                "description": "Unnatural silence > 500ms",
+                "color": "#4444FF"
+            },
+            {
+                "name": "hallucination",
+                "description": "Words or sounds not in the input text",
+                "color": "#44FF44"
+            },
+            {
+                "name": "echo",
+                "description": "Reverb or repeated audio",
+                "color": "#FF8844"
+            }
+        ]
+    }
+)
+```
+
+## Common artifact types
+
+Here are common types for different Voice AI applications:
+
+### TTS (Text-to-Speech)
+
+| Type | Description |
+|------|-------------|
+| `glitch` | Pops, clicks, digital artifacts |
+| `long_pause` | Unnatural silence between words |
+| `hallucination` | Extra words not in input |
+| `mispronunciation` | Incorrect word pronunciation |
+| `clipping` | Audio amplitude exceeding limits |
+| `distortion` | Waveform distortion |
+
+### Voice agents
+
+| Type | Description |
+|------|-------------|
+| `crosstalk` | Overlapping speech from multiple sources |
+| `echo` | Audio reflection or reverb |
+| `dropout` | Missing audio segments |
+| `static` | Background noise or interference |
+| `latency_gap` | Delays in response |
+
+### Speech recognition
+
+| Type | Description |
+|------|-------------|
+| `filler_word` | "Um", "uh", "like" |
+| `hesitation` | Unnatural pauses mid-sentence |
+| `repetition` | Repeated words or phrases |
+| `false_start` | Sentence restarts |
+
+## Naming conventions
+
+### Use lowercase with underscores
+
+```
+# Good
+"long_pause"
+"tts_hallucination"
+"background_noise"
+
+# Avoid
+"Long Pause"
+"TTS-Hallucination"
+"backgroundNoise"
+```
+
+### Keep names short but descriptive
+
+```
+# Good
+"glitch"
+"echo"
+"dropout"
+
+# Too long
+"audio_glitch_or_pop_or_click"
+"speaker_echo_or_reverb_artifact"
+```
+
+### Be specific
+
+```
+# Good - specific types
+"long_pause"    # Pause > 500ms
+"short_pause"   # Pause 100-500ms
+
+# Too vague
+"pause"         # Which kind?
+"issue"         # What issue?
+```
+
+## Choosing artifact types
+
+### Start focused
+
+Begin with 2-3 well-defined types:
+
+```python Python
+"artifact_types": [
+    {"name": "glitch", "description": "Audio pop or click"},
+    {"name": "long_pause", "description": "Silence > 500ms"}
+]
+```
+
+### Expand as needed
+
+Add more types after your initial model is working:
+
+```python Python
+# Get current types
+dataset = requests.get(...).json()
+current_types = dataset["artifact_types"]
+
+# Add new type
+current_types.append({
+    "name": "echo",
+    "description": "Reverb or repeated audio"
+})
+
+# Update dataset
+requests.patch(
+    f"{BASE_URL}/api/v1/datasets/{dataset_id}",
+    headers={"X-API-Key": API_KEY},
+    json={"artifact_types": current_types}
+)
+```
+
+### Avoid overlap
+
+Each artifact should fit into exactly one type:
+
+```
+# Good - distinct types
+"glitch"        → Pops and clicks
+"distortion"    → Waveform distortion
+"clipping"      → Amplitude clipping
+
+# Problematic - overlapping definitions
+"audio_issue"   → Too broad, overlaps with everything
+"sound_problem" → What does this mean?
+```
+
+## Using artifact types
+
+### In annotations
+
+Specify the artifact type when creating annotations:
+
+```python Python
+{
+    "audio_file_id": "...",
+    "artifact_type": "glitch",  # Must match dataset's defined types
+    "start_ms": 1200,
+    "end_ms": 1450
+}
+```
+
+### In training
+
+Choose which types to train on:
+
+```python Python
+{
+    "dataset_id": "...",
+    "annotation_set_id": "...",
+    "config": {
+        "artifact_types": ["glitch", "long_pause"]  # Train on subset
+    }
+}
+```
+
+### In inference results
+
+Detections include the artifact type:
+
+```json
+{
+  "artifact_type": "glitch",
+  "start_ms": 1200,
+  "end_ms": 1450,
+  "confidence": 0.87
+}
+```
+
+## Colors for visualization
+
+Colors help distinguish types in UIs:
+
+```python Python
+"artifact_types": [
+    {"name": "glitch", "color": "#FF4444"},      # Red
+    {"name": "long_pause", "color": "#4444FF"},  # Blue
+    {"name": "hallucination", "color": "#44FF44"},# Green
+    {"name": "echo", "color": "#FF8844"}         # Orange
+]
+```
+
+Use contrasting colors for easy differentiation.
+
+## Best practices
+
+### Document definitions
+
+Include clear descriptions:
+
+```python Python
+{
+    "name": "long_pause",
+    "description": "Silence > 500ms that breaks natural speech flow. Don't label intentional pauses at sentence boundaries."
+}
+```
+
+### Create labeling guidelines
+
+Document criteria for each type:
+
+```markdown
+## Glitch
+- Include: Pops, clicks, digital artifacts > 10ms
+- Exclude: Background noise, recording quality issues
+- Boundary: Start 10ms before audible start, end 10ms after
+
+## Long Pause
+- Include: Silence > 500ms mid-sentence
+- Exclude: Natural pauses at sentence boundaries
+- Boundary: From last sound to first sound
+```
+
+### Review and iterate
+
+After initial training, review detections to refine definitions:
+
+- Are there false positives that suggest type overlap?
+- Are there missed artifacts that need a new type?
+- Are definitions clear enough for consistent labeling?

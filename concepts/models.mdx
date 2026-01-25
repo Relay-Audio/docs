@@ -1,0 +1,305 @@
+---
+title: "Models"
+description: "Trained artifact detection models"
+---
+
+Models are the trained detectors that identify artifacts in audio. Each model is created from a training job and can be used for inference.
+
+## What is a model?
+
+A model is the output of a successful training job:
+
+- Trained on your annotated audio data
+- Detects the artifact types you defined
+- Produces timestamped detections with confidence scores
+
+```
+Training Job (completed)
+        ↓
+    Model Created
+        ↓
+    Inference Ready
+```
+
+## Model structure
+
+| Field | Description |
+|-------|-------------|
+| `id` | Unique identifier |
+| `name` | Optional display name |
+| `description` | Optional description |
+| `artifact_types` | List of detectable artifact types |
+| `training_job_id` | The job that created this model |
+| `eval_metrics` | Validation metrics (precision, recall, F1) |
+| `is_active` | Whether the model is active |
+| `created_at` | When the model was created |
+
+## Listing models
+
+```python Python
+response = requests.get(
+    f"{BASE_URL}/api/v1/models",
+    headers={"X-API-Key": API_KEY}
+)
+models = response.json()
+
+for model in models["items"]:
+    print(f"{model['name'] or model['id']}")
+    print(f"  Types: {model['artifact_types']}")
+    print(f"  F1: {model['eval_metrics']['f1_score']:.2f}")
+```
+
+### Filter by status
+
+```python Python
+# Only active models
+response = requests.get(
+    f"{BASE_URL}/api/v1/models",
+    headers={"X-API-Key": API_KEY},
+    params={"is_active": True}
+)
+```
+
+## Model metrics
+
+Models include evaluation metrics from training:
+
+```json
+{
+  "eval_metrics": {
+    "precision": 0.89,
+    "recall": 0.85,
+    "f1_score": 0.87,
+    "per_class": {
+      "glitch": {
+        "precision": 0.92,
+        "recall": 0.88,
+        "f1_score": 0.90,
+        "support": 150
+      },
+      "long_pause": {
+        "precision": 0.85,
+        "recall": 0.82,
+        "f1_score": 0.83,
+        "support": 80
+      }
+    }
+  }
+}
+```
+
+### Understanding metrics
+
+| Metric | What it measures | Good values |
+|--------|------------------|-------------|
+| **Precision** | Of detected artifacts, how many are real? | > 0.8 |
+| **Recall** | Of real artifacts, how many were detected? | > 0.8 |
+| **F1 Score** | Balance of precision and recall | > 0.8 |
+| **Support** | Number of validation examples | Higher = more reliable |
+
+### Per-class metrics
+
+Check metrics for each artifact type:
+
+```python Python
+for artifact_type, metrics in model["eval_metrics"]["per_class"].items():
+    print(f"{artifact_type}:")
+    print(f"  Precision: {metrics['precision']:.2f}")
+    print(f"  Recall: {metrics['recall']:.2f}")
+    print(f"  Support: {metrics['support']}")
+```
+
+## Managing models
+
+### Update name and description
+
+```python Python
+response = requests.patch(
+    f"{BASE_URL}/api/v1/models/{model_id}",
+    headers={"X-API-Key": API_KEY},
+    json={
+        "name": "TTS Glitch Detector v2",
+        "description": "Trained on 2 hours of production audio, Jan 2024"
+    }
+)
+```
+
+### Activate/deactivate
+
+Deactivate models you no longer use:
+
+```python Python
+# Deactivate
+requests.patch(
+    f"{BASE_URL}/api/v1/models/{model_id}",
+    headers={"X-API-Key": API_KEY},
+    json={"is_active": False}
+)
+
+# Reactivate
+requests.patch(
+    f"{BASE_URL}/api/v1/models/{model_id}",
+    headers={"X-API-Key": API_KEY},
+    json={"is_active": True}
+)
+```
+
+### Delete (archive)
+
+Deleting archives the model (soft delete):
+
+```python Python
+requests.delete(
+    f"{BASE_URL}/api/v1/models/{model_id}",
+    headers={"X-API-Key": API_KEY}
+)
+```
+
+<Note>
+Archived models cannot be used for inference but are retained for audit purposes.
+</Note>
+
+## Selecting models for inference
+
+### By metrics
+
+Choose the model with best performance:
+
+```python Python
+response = requests.get(
+    f"{BASE_URL}/api/v1/models",
+    headers={"X-API-Key": API_KEY},
+    params={"is_active": True}
+)
+models = response.json()["items"]
+
+# Find best F1 score
+best_model = max(models, key=lambda m: m["eval_metrics"]["f1_score"])
+print(f"Best model: {best_model['id']} (F1: {best_model['eval_metrics']['f1_score']:.2f})")
+```
+
+### By artifact type
+
+Choose based on per-class performance:
+
+```python Python
+# Find best model for detecting glitches
+def glitch_f1(model):
+    return model["eval_metrics"]["per_class"].get("glitch", {}).get("f1_score", 0)
+
+best_glitch_model = max(models, key=glitch_f1)
+```
+
+### By recency
+
+Use the most recently trained model:
+
+```python Python
+from datetime import datetime
+
+def parse_date(model):
+    return datetime.fromisoformat(model["created_at"].replace("Z", "+00:00"))
+
+latest_model = max(models, key=parse_date)
+```
+
+## Model versioning
+
+Track model versions through naming:
+
+```python Python
+# After training, update the name with version info
+response = requests.patch(
+    f"{BASE_URL}/api/v1/models/{model_id}",
+    headers={"X-API-Key": API_KEY},
+    json={
+        "name": f"TTS Detector v{version}",
+        "description": f"""
+        Trained: {datetime.now().isoformat()}
+        Dataset: {dataset_id}
+        Annotation set: v{annotation_set_version}
+        F1: {metrics['f1_score']:.2f}
+        """
+    }
+)
+```
+
+## Model comparison
+
+Compare models trained on different data or configurations:
+
+```python Python
+def compare_models(model_ids):
+    """Compare metrics across models."""
+    results = []
+
+    for model_id in model_ids:
+        response = requests.get(
+            f"{BASE_URL}/api/v1/models/{model_id}",
+            headers={"X-API-Key": API_KEY}
+        )
+        model = response.json()
+
+        results.append({
+            "id": model_id,
+            "name": model["name"],
+            "precision": model["eval_metrics"]["precision"],
+            "recall": model["eval_metrics"]["recall"],
+            "f1_score": model["eval_metrics"]["f1_score"]
+        })
+
+    return results
+
+comparison = compare_models(["model-1", "model-2", "model-3"])
+for m in comparison:
+    print(f"{m['name']}: P={m['precision']:.2f} R={m['recall']:.2f} F1={m['f1_score']:.2f}")
+```
+
+## Best practices
+
+### Name models clearly
+
+Include version and key characteristics:
+
+```
+"TTS Glitch Detector v2 - High Recall"
+"Voice Agent Echo Detection - Production"
+"EN-US Pronunciation Model v1.3"
+```
+
+### Document training details
+
+Use the description field:
+
+```python Python
+{
+    "description": """
+    Training config:
+    - Epochs: 30
+    - Batch size: 64
+    - Learning rate: 0.0005
+
+    Training data:
+    - 150 audio files (2.5 hours)
+    - 520 annotations
+    - Annotation set v3
+
+    Notes:
+    - Improved recall for short glitches by using smaller chunk size
+    """
+}
+```
+
+### Keep old models
+
+Don't delete models immediately when training new ones:
+- Compare performance before switching
+- Rollback if the new model underperforms
+- Track improvements over time
+
+### Monitor in production
+
+Track model performance over time:
+- Log detection rates
+- Compare against human review
+- Retrain when performance degrades

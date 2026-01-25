@@ -1,0 +1,236 @@
+---
+title: "Datasets"
+description: "Organize audio files and define artifact types"
+---
+
+A dataset is a container for audio files and their annotations. Each dataset defines the artifact types you want to detect.
+
+## What is a dataset?
+
+Datasets serve as the foundation for training custom models:
+
+- **Audio files**: The audio samples used for training
+- **Artifact types**: The categories of artifacts to detect
+- **Annotation sets**: Labeled timestamps marking where artifacts occur
+
+```
+Dataset: "TTS Quality Detection"
+├── Artifact Types: [glitch, long_pause, hallucination]
+├── Audio Files: 150 files (2.5 hours)
+└── Annotation Sets:
+    ├── v1 (published) - 450 annotations
+    └── v2 (draft) - 520 annotations
+```
+
+## Creating a dataset
+
+Define a name and the artifact types you want to detect:
+
+```python Python
+response = requests.post(
+    f"{BASE_URL}/api/v1/datasets",
+    headers={"X-API-Key": API_KEY},
+    json={
+        "name": "TTS Quality Detection",
+        "description": "Detect quality issues in TTS output",
+        "artifact_types": [
+            {
+                "name": "glitch",
+                "description": "Audio pop, click, or distortion",
+                "color": "#FF4444"
+            },
+            {
+                "name": "long_pause",
+                "description": "Unnatural silence > 500ms",
+                "color": "#4444FF"
+            },
+            {
+                "name": "hallucination",
+                "description": "Extra words or sounds not in input",
+                "color": "#44FF44"
+            }
+        ]
+    }
+)
+dataset = response.json()
+```
+
+## Dataset structure
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `id` | UUID | Unique identifier |
+| `name` | string | Display name |
+| `description` | string | Optional description |
+| `artifact_types` | array | List of artifact type definitions |
+| `created_at` | datetime | Creation timestamp |
+| `updated_at` | datetime | Last modification timestamp |
+
+When listing datasets, additional statistics are included:
+
+| Field | Description |
+|-------|-------------|
+| `audio_count` | Number of audio files |
+| `annotation_set_count` | Number of annotation sets |
+
+## Organizing datasets
+
+### By use case
+
+Create separate datasets for different detection tasks:
+
+- **TTS Glitches**: `[glitch, pop, distortion]`
+- **Voice Agent Issues**: `[crosstalk, echo, dropout]`
+- **Speech Quality**: `[mispronunciation, hesitation, filler_words]`
+
+### By audio source
+
+If your audio comes from different systems or has different characteristics:
+
+- **Production TTS v1**: Audio from your legacy TTS system
+- **Production TTS v2**: Audio from your new TTS system
+- **Voice Recordings**: Human voice samples
+
+### By language or speaker
+
+For multilingual or multi-speaker systems:
+
+- **English TTS**: English-specific artifacts
+- **Spanish TTS**: Spanish-specific artifacts
+
+## Updating datasets
+
+### Change name or description
+
+```python Python
+response = requests.patch(
+    f"{BASE_URL}/api/v1/datasets/{dataset_id}",
+    headers={"X-API-Key": API_KEY},
+    json={
+        "name": "Updated Dataset Name",
+        "description": "New description"
+    }
+)
+```
+
+### Add artifact types
+
+You can add new artifact types to an existing dataset:
+
+```python Python
+# Get current artifact types
+response = requests.get(
+    f"{BASE_URL}/api/v1/datasets/{dataset_id}",
+    headers={"X-API-Key": API_KEY}
+)
+current_types = response.json()["artifact_types"]
+
+# Add new type
+current_types.append({
+    "name": "echo",
+    "description": "Reverb or echo artifact",
+    "color": "#FF8844"
+})
+
+# Update dataset
+response = requests.patch(
+    f"{BASE_URL}/api/v1/datasets/{dataset_id}",
+    headers={"X-API-Key": API_KEY},
+    json={"artifact_types": current_types}
+)
+```
+
+<Warning>
+Removing an artifact type will invalidate annotations that use it. Only add new types to existing datasets.
+</Warning>
+
+## Deleting datasets
+
+Delete a dataset and all associated data:
+
+```python Python
+response = requests.delete(
+    f"{BASE_URL}/api/v1/datasets/{dataset_id}",
+    headers={"X-API-Key": API_KEY}
+)
+```
+
+<Warning>
+This permanently deletes:
+- All audio files in the dataset
+- All annotation sets
+- All annotations
+
+Models trained on this dataset are not deleted but will reference a deleted dataset.
+</Warning>
+
+## Dataset lifecycle
+
+```
+1. Create dataset
+   ↓
+2. Define artifact types
+   ↓
+3. Upload audio files
+   ↓
+4. Create annotation set
+   ↓
+5. Add annotations
+   ↓
+6. Publish annotation set
+   ↓
+7. Train model
+   ↓
+8. (Optional) Add more data and retrain
+```
+
+## Best practices
+
+### Clear naming
+
+Use descriptive names that indicate:
+- What the dataset is for
+- What type of audio it contains
+- Version if applicable
+
+```
+"TTS Glitch Detection - English - v2"
+"Voice Agent Echo Detection - Production"
+```
+
+### Artifact type naming
+
+Use lowercase with underscores, keep names short:
+
+```
+# Good
+"glitch", "long_pause", "tts_hallucination"
+
+# Avoid
+"Audio Glitch", "LONG-PAUSE", "tts_hallucination_extra_words"
+```
+
+### Documentation
+
+Use the description field to document:
+- Purpose of the dataset
+- Labeling guidelines
+- Data sources
+- Any known issues
+
+```python Python
+{
+    "name": "TTS Glitch Detection",
+    "description": """
+    Dataset for detecting audio glitches in production TTS output.
+
+    Labeling guidelines:
+    - glitch: Any audible pop, click, or distortion > 10ms
+    - long_pause: Silence > 500ms that breaks natural speech flow
+
+    Data sources:
+    - Production TTS logs from Jan-Mar 2024
+    - Manually curated examples from QA team
+    """
+}
+```

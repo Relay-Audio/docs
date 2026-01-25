@@ -1,33 +1,207 @@
 ---
-title: 'Introduction'
-description: 'Example section for showcasing API endpoints'
+title: "API Reference"
+description: "Complete reference for the Relay REST API"
 ---
 
-<Note>
-  If you're not looking to build API reference documentation, you can delete
-  this section by removing the api-reference folder.
-</Note>
+The Relay API is organized around REST principles. It accepts JSON-encoded request bodies, returns JSON-encoded responses, and uses standard HTTP response codes.
 
-## Welcome
+## Base URL
 
-There are two ways to build API documentation: [OpenAPI](https://mintlify.com/docs/api-playground/openapi/setup) and [MDX components](https://mintlify.com/docs/api-playground/mdx/configuration). For the starter kit, we are using the following OpenAPI specification.
+All API requests should be made to:
 
-<Card
-  title="Plant Store Endpoints"
-  icon="leaf"
-  href="https://github.com/mintlify/starter/blob/main/api-reference/openapi.json"
->
-  View the OpenAPI specification file
-</Card>
+```
+https://api.relay.ai
+```
 
 ## Authentication
 
-All API endpoints are authenticated using Bearer tokens and picked up from the specification file.
+Authenticate requests by including your API key in the `X-API-Key` header:
+
+```bash
+curl https://api.relay.ai/api/v1/datasets \
+  -H "X-API-Key: your_api_key_here"
+```
+
+API keys are created in the [Relay dashboard](https://app.relay.ai) under **Settings > API Keys**.
+
+<Warning>
+Keep your API key secure. Do not share it in public repositories or client-side code.
+</Warning>
+
+## Request format
+
+- **Content-Type**: `application/json` for all requests with a body
+- **Method**: Use appropriate HTTP methods (GET, POST, PATCH, DELETE)
+- **IDs**: All resource IDs are UUIDs
+
+```bash
+curl -X POST https://api.relay.ai/api/v1/datasets \
+  -H "X-API-Key: $API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{"name": "My Dataset", "artifact_types": [{"name": "glitch"}]}'
+```
+
+## Response format
+
+All responses are JSON-encoded. Successful responses include the requested resource or a confirmation.
 
 ```json
-"security": [
-  {
-    "bearerAuth": []
-  }
-]
+{
+  "id": "123e4567-e89b-12d3-a456-426614174000",
+  "name": "My Dataset",
+  "artifact_types": [{"name": "glitch"}],
+  "created_at": "2024-01-15T10:30:00Z",
+  "updated_at": "2024-01-15T10:30:00Z"
+}
 ```
+
+## HTTP status codes
+
+| Code | Description |
+|------|-------------|
+| `200` | OK - Request succeeded |
+| `201` | Created - Resource created successfully |
+| `204` | No Content - Request succeeded (delete operations) |
+| `400` | Bad Request - Invalid request format |
+| `401` | Unauthorized - Invalid or missing API key |
+| `403` | Forbidden - Valid key but insufficient permissions |
+| `404` | Not Found - Resource doesn't exist |
+| `422` | Validation Error - Request body validation failed |
+| `500` | Internal Server Error - Server-side error |
+
+## Error responses
+
+Errors return a JSON object with a `detail` field:
+
+```json
+{
+  "detail": "Dataset not found"
+}
+```
+
+Validation errors (422) include details about which fields failed:
+
+```json
+{
+  "detail": [
+    {
+      "loc": ["body", "name"],
+      "msg": "field required",
+      "type": "value_error.missing"
+    }
+  ]
+}
+```
+
+## Pagination
+
+List endpoints support pagination with `page` and `page_size` parameters:
+
+```bash
+curl "https://api.relay.ai/api/v1/datasets/123/audio?page=1&page_size=50" \
+  -H "X-API-Key: $API_KEY"
+```
+
+Paginated responses include:
+
+```json
+{
+  "items": [...],
+  "total": 150,
+  "page": 1,
+  "page_size": 50,
+  "has_more": true
+}
+```
+
+| Field | Description |
+|-------|-------------|
+| `items` | Array of resources |
+| `total` | Total count across all pages |
+| `page` | Current page number (1-indexed) |
+| `page_size` | Items per page |
+| `has_more` | Whether more pages exist |
+
+## Idempotency
+
+POST requests that create resources are not idempotent. To avoid duplicates, track the returned `id` from successful requests.
+
+## Versioning
+
+The API version is included in the URL path: `/api/v1/...`
+
+Breaking changes will be introduced in new versions (e.g., `/api/v2/...`). Existing versions remain supported.
+
+## Resource hierarchy
+
+```
+Tenant (your account)
+├── Datasets
+│   ├── Audio Files
+│   └── Annotation Sets
+│       └── Annotations
+├── Training Jobs
+├── Models
+└── Inference Jobs
+    └── Inference Files
+```
+
+## Common patterns
+
+### Presigned URL uploads
+
+Audio file uploads use presigned URLs for direct-to-storage uploads:
+
+1. **Request URL**: POST to get a presigned upload URL
+2. **Upload**: POST the file to the presigned URL
+3. **Confirm**: POST to confirm the upload completed
+
+This keeps large files off the API servers and enables faster uploads.
+
+### Async operations
+
+Training and inference are async operations:
+
+1. **Create**: POST to create a job
+2. **Poll**: GET the job periodically to check status
+3. **Results**: Read results when status is `completed`
+
+```python
+while True:
+    job = get_job(job_id)
+    if job["status"] == "completed":
+        break
+    time.sleep(10)
+```
+
+### Draft and publish
+
+Annotation sets follow a draft → publish workflow:
+
+1. Create set (starts as draft)
+2. Add/edit annotations
+3. Publish (locks the set)
+4. Use for training
+
+## API endpoints
+
+<CardGroup cols={2}>
+  <Card title="Authentication" icon="key" href="/api-reference/auth/list-api-keys">
+    Manage API keys
+  </Card>
+  <Card title="Datasets" icon="database" href="/api-reference/datasets/list-datasets">
+    Create and manage datasets
+  </Card>
+  <Card title="Audio Files" icon="file-audio" href="/api-reference/audio/get-upload-url">
+    Upload and manage audio
+  </Card>
+  <Card title="Annotations" icon="tag" href="/api-reference/annotations/create-annotation-set">
+    Label audio artifacts
+  </Card>
+  <Card title="Training" icon="brain" href="/api-reference/training/create-training-job">
+    Train detection models
+  </Card>
+  <Card title="Inference" icon="magnifying-glass" href="/api-reference/inference/create-inference-job">
+    Detect artifacts in audio
+  </Card>
+</CardGroup>

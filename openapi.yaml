@@ -4,90 +4,6 @@ info:
   description: Voice AI Artifact Detection Platform
   version: 0.1.0
 paths:
-  /api/health:
-    get:
-      summary: Api Health
-      description: API health check.
-      operationId: api_health_api_health_get
-      responses:
-        '200':
-          description: Successful Response
-          content:
-            application/json:
-              schema:
-                additionalProperties:
-                  type: string
-                type: object
-                title: Response Api Health Api Health Get
-  /api/v1/auth/signup:
-    post:
-      tags:
-      - auth
-      summary: Signup
-      description: Create a new tenant account.
-      operationId: signup_api_v1_auth_signup_post
-      requestBody:
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/SignupRequest'
-        required: true
-      responses:
-        '201':
-          description: Successful Response
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/LoginResponse'
-        '422':
-          description: Validation Error
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/HTTPValidationError'
-  /api/v1/auth/login:
-    post:
-      tags:
-      - auth
-      summary: Login
-      description: Authenticate and get access token.
-      operationId: login_api_v1_auth_login_post
-      requestBody:
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/LoginRequest'
-        required: true
-      responses:
-        '200':
-          description: Successful Response
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/LoginResponse'
-        '422':
-          description: Validation Error
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/HTTPValidationError'
-  /api/v1/auth/me:
-    get:
-      tags:
-      - auth
-      summary: Get Current User
-      description: Get current authenticated tenant.
-      operationId: get_current_user_api_v1_auth_me_get
-      responses:
-        '200':
-          description: Successful Response
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/TenantResponse'
-      security:
-      - HTTPBearer: []
-      - APIKeyHeader: []
   /api/v1/auth/api-keys:
     get:
       tags:
@@ -106,7 +22,6 @@ paths:
                 type: array
                 title: Response List Api Keys Api V1 Auth Api Keys Get
       security:
-      - HTTPBearer: []
       - APIKeyHeader: []
     post:
       tags:
@@ -134,7 +49,6 @@ paths:
               schema:
                 $ref: '#/components/schemas/HTTPValidationError'
       security:
-      - HTTPBearer: []
       - APIKeyHeader: []
   /api/v1/auth/api-keys/{key_id}:
     delete:
@@ -144,7 +58,6 @@ paths:
       description: Revoke an API key.
       operationId: revoke_api_key_api_v1_auth_api_keys__key_id__delete
       security:
-      - HTTPBearer: []
       - APIKeyHeader: []
       parameters:
       - name: key_id
@@ -180,7 +93,6 @@ paths:
                 type: array
                 title: Response List Datasets Api V1 Datasets Get
       security:
-      - HTTPBearer: []
       - APIKeyHeader: []
     post:
       tags:
@@ -208,7 +120,6 @@ paths:
               schema:
                 $ref: '#/components/schemas/HTTPValidationError'
       security:
-      - HTTPBearer: []
       - APIKeyHeader: []
   /api/v1/datasets/{dataset_id}:
     get:
@@ -218,7 +129,6 @@ paths:
       description: Get a specific dataset by ID.
       operationId: get_dataset_api_v1_datasets__dataset_id__get
       security:
-      - HTTPBearer: []
       - APIKeyHeader: []
       parameters:
       - name: dataset_id
@@ -248,7 +158,6 @@ paths:
       description: Update a dataset.
       operationId: update_dataset_api_v1_datasets__dataset_id__patch
       security:
-      - HTTPBearer: []
       - APIKeyHeader: []
       parameters:
       - name: dataset_id
@@ -284,7 +193,6 @@ paths:
       description: Delete a dataset and all associated data.
       operationId: delete_dataset_api_v1_datasets__dataset_id__delete
       security:
-      - HTTPBearer: []
       - APIKeyHeader: []
       parameters:
       - name: dataset_id
@@ -329,7 +237,6 @@ paths:
         3. Call the confirm endpoint to mark the upload as complete'
       operationId: get_upload_url_api_v1_datasets__dataset_id__audio_upload_url_post
       security:
-      - HTTPBearer: []
       - APIKeyHeader: []
       parameters:
       - name: dataset_id
@@ -378,7 +285,6 @@ paths:
         The client should call this after successfully uploading to S3.'
       operationId: confirm_upload_api_v1_datasets__dataset_id__audio_confirm_post
       security:
-      - HTTPBearer: []
       - APIKeyHeader: []
       parameters:
       - name: dataset_id
@@ -428,7 +334,6 @@ paths:
         - failed: Processing failed'
       operationId: list_audio_files_api_v1_datasets__dataset_id__audio_get
       security:
-      - HTTPBearer: []
       - APIKeyHeader: []
       parameters:
       - name: dataset_id
@@ -490,7 +395,6 @@ paths:
       description: Get details of a specific audio file.
       operationId: get_audio_file_api_v1_datasets__dataset_id__audio__audio_id__get
       security:
-      - HTTPBearer: []
       - APIKeyHeader: []
       parameters:
       - name: dataset_id
@@ -536,7 +440,6 @@ paths:
         3. Delete any normalized/embedding files from S3'
       operationId: delete_audio_file_api_v1_datasets__dataset_id__audio__audio_id__delete
       security:
-      - HTTPBearer: []
       - APIKeyHeader: []
       parameters:
       - name: dataset_id
@@ -575,7 +478,6 @@ paths:
         Set normalized=true to get the normalized version (if processing is complete).'
       operationId: get_download_url_api_v1_datasets__dataset_id__audio__audio_id__download_url_get
       security:
-      - HTTPBearer: []
       - APIKeyHeader: []
       parameters:
       - name: dataset_id
@@ -627,7 +529,6 @@ paths:
         New sets start as drafts and must be published before training.'
       operationId: create_annotation_set_api_v1_datasets__dataset_id__annotation_sets_post
       security:
-      - HTTPBearer: []
       - APIKeyHeader: []
       parameters:
       - name: dataset_id
@@ -657,7 +558,6 @@ paths:
       description: List all annotation sets for a dataset.
       operationId: list_annotation_sets_api_v1_datasets__dataset_id__annotation_sets_get
       security:
-      - HTTPBearer: []
       - APIKeyHeader: []
       parameters:
       - name: dataset_id
@@ -688,7 +588,6 @@ paths:
       description: Get annotation set with all annotations.
       operationId: get_annotation_set_detail_api_v1_datasets__dataset_id__annotation_sets__annotation_set_id__get
       security:
-      - HTTPBearer: []
       - APIKeyHeader: []
       parameters:
       - name: dataset_id
@@ -728,7 +627,6 @@ paths:
         Only draft annotation sets can be deleted.'
       operationId: delete_annotation_set_api_v1_datasets__dataset_id__annotation_sets__annotation_set_id__delete
       security:
-      - HTTPBearer: []
       - APIKeyHeader: []
       parameters:
       - name: dataset_id
@@ -767,7 +665,6 @@ paths:
         Stats are computed and stored for quick access.'
       operationId: publish_annotation_set_api_v1_datasets__dataset_id__annotation_sets__annotation_set_id__publish_post
       security:
-      - HTTPBearer: []
       - APIKeyHeader: []
       parameters:
       - name: dataset_id
@@ -805,7 +702,6 @@ paths:
       description: Create a single annotation.
       operationId: create_annotation_api_v1_datasets__dataset_id__annotation_sets__annotation_set_id__annotations_post
       security:
-      - HTTPBearer: []
       - APIKeyHeader: []
       parameters:
       - name: dataset_id
@@ -848,7 +744,6 @@ paths:
       description: List annotations with optional filters.
       operationId: list_annotations_api_v1_datasets__dataset_id__annotation_sets__annotation_set_id__annotations_get
       security:
-      - HTTPBearer: []
       - APIKeyHeader: []
       parameters:
       - name: dataset_id
@@ -891,8 +786,8 @@ paths:
                 type: array
                 items:
                   $ref: '#/components/schemas/AnnotationResponse'
-                title: Response List Annotations Api V1 Datasets  Dataset Id  Annotation
-                  Sets  Annotation Set Id  Annotations Get
+                title: Response List Annotations Api V1 Datasets  Dataset Id  Annotation Sets  Annotation Set Id  Annotations
+                  Get
         '422':
           description: Validation Error
           content:
@@ -907,7 +802,6 @@ paths:
       description: Create multiple annotations at once.
       operationId: create_annotations_bulk_api_v1_datasets__dataset_id__annotation_sets__annotation_set_id__annotations_bulk_post
       security:
-      - HTTPBearer: []
       - APIKeyHeader: []
       parameters:
       - name: dataset_id
@@ -951,7 +845,6 @@ paths:
       description: Update an annotation.
       operationId: update_annotation_api_v1_datasets__dataset_id__annotation_sets__annotation_set_id__annotations__annotation_id__patch
       security:
-      - HTTPBearer: []
       - APIKeyHeader: []
       parameters:
       - name: dataset_id
@@ -1001,7 +894,6 @@ paths:
       description: Delete an annotation.
       operationId: delete_annotation_api_v1_datasets__dataset_id__annotation_sets__annotation_set_id__annotations__annotation_id__delete
       security:
-      - HTTPBearer: []
       - APIKeyHeader: []
       parameters:
       - name: dataset_id
@@ -1047,7 +939,6 @@ paths:
         or used with Label Studio ML backend.'
       operationId: export_label_studio_api_v1_datasets__dataset_id__annotation_sets__annotation_set_id__export_label_studio_get
       security:
-      - HTTPBearer: []
       - APIKeyHeader: []
       parameters:
       - name: dataset_id
@@ -1096,7 +987,6 @@ paths:
         - At least 5 minutes of total audio'
       operationId: create_training_job_api_v1_training_jobs_post
       security:
-      - HTTPBearer: []
       - APIKeyHeader: []
       requestBody:
         required: true
@@ -1124,7 +1014,6 @@ paths:
       description: List training jobs for the tenant.
       operationId: list_training_jobs_api_v1_training_jobs_get
       security:
-      - HTTPBearer: []
       - APIKeyHeader: []
       parameters:
       - name: dataset_id
@@ -1182,7 +1071,6 @@ paths:
       description: Get training job details with progress and metrics.
       operationId: get_training_job_api_v1_training_jobs__job_id__get
       security:
-      - HTTPBearer: []
       - APIKeyHeader: []
       parameters:
       - name: job_id
@@ -1212,7 +1100,6 @@ paths:
       description: Cancel a pending or running training job.
       operationId: cancel_training_job_api_v1_training_jobs__job_id__delete
       security:
-      - HTTPBearer: []
       - APIKeyHeader: []
       parameters:
       - name: job_id
@@ -1239,7 +1126,6 @@ paths:
       description: List trained models for the tenant.
       operationId: list_models_api_v1_models_get
       security:
-      - HTTPBearer: []
       - APIKeyHeader: []
       parameters:
       - name: is_active
@@ -1271,7 +1157,6 @@ paths:
       description: Get model details with metrics.
       operationId: get_model_api_v1_models__model_id__get
       security:
-      - HTTPBearer: []
       - APIKeyHeader: []
       parameters:
       - name: model_id
@@ -1301,7 +1186,6 @@ paths:
       description: Update model name, description, or active status.
       operationId: update_model_api_v1_models__model_id__patch
       security:
-      - HTTPBearer: []
       - APIKeyHeader: []
       parameters:
       - name: model_id
@@ -1340,7 +1224,6 @@ paths:
         This archives the model rather than hard deleting.'
       operationId: delete_model_api_v1_models__model_id__delete
       security:
-      - HTTPBearer: []
       - APIKeyHeader: []
       parameters:
       - name: model_id
@@ -1372,7 +1255,6 @@ paths:
         then files will be queued for processing automatically.'
       operationId: create_inference_job_api_v1_inference_jobs_post
       security:
-      - HTTPBearer: []
       - APIKeyHeader: []
       requestBody:
         required: true
@@ -1400,7 +1282,6 @@ paths:
       description: List inference jobs for the tenant.
       operationId: list_inference_jobs_api_v1_inference_jobs_get
       security:
-      - HTTPBearer: []
       - APIKeyHeader: []
       parameters:
       - name: model_id
@@ -1458,7 +1339,6 @@ paths:
       description: Get inference job details with files and detections.
       operationId: get_inference_job_api_v1_inference_jobs__job_id__get
       security:
-      - HTTPBearer: []
       - APIKeyHeader: []
       parameters:
       - name: job_id
@@ -1488,7 +1368,6 @@ paths:
       description: Cancel a pending or processing inference job.
       operationId: cancel_inference_job_api_v1_inference_jobs__job_id__delete
       security:
-      - HTTPBearer: []
       - APIKeyHeader: []
       parameters:
       - name: job_id
@@ -1515,7 +1394,6 @@ paths:
       description: List files in an inference job.
       operationId: list_inference_files_api_v1_inference_jobs__job_id__files_get
       security:
-      - HTTPBearer: []
       - APIKeyHeader: []
       parameters:
       - name: job_id
@@ -1554,7 +1432,6 @@ paths:
       description: Get inference file with detections.
       operationId: get_inference_file_api_v1_inference_jobs__job_id__files__file_id__get
       security:
-      - HTTPBearer: []
       - APIKeyHeader: []
       parameters:
       - name: job_id
@@ -1597,7 +1474,6 @@ paths:
         After upload, call confirm endpoint to start processing.'
       operationId: get_file_upload_url_api_v1_inference_jobs__job_id__files_upload_url_post
       security:
-      - HTTPBearer: []
       - APIKeyHeader: []
       parameters:
       - name: job_id
@@ -1639,7 +1515,6 @@ paths:
         This will queue the file for inference processing.'
       operationId: confirm_file_upload_api_v1_inference_jobs__job_id__files_confirm_post
       security:
-      - HTTPBearer: []
       - APIKeyHeader: []
       parameters:
       - name: job_id
@@ -1676,7 +1551,6 @@ paths:
       description: Get a presigned URL to download the original audio file.
       operationId: get_file_download_url_api_v1_inference_jobs__job_id__files__file_id__download_url_get
       security:
-      - HTTPBearer: []
       - APIKeyHeader: []
       parameters:
       - name: job_id
@@ -1701,181 +1575,13 @@ paths:
               schema:
                 type: object
                 additionalProperties: true
-                title: Response Get File Download Url Api V1 Inference Jobs  Job Id  Files  File
-                  Id  Download Url Get
+                title: Response Get File Download Url Api V1 Inference Jobs  Job Id  Files  File Id  Download Url Get
         '422':
           description: Validation Error
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/HTTPValidationError'
-  /api/v1/billing/checkout:
-    post:
-      tags:
-      - billing
-      summary: Create Checkout Session
-      description: 'Create a Stripe checkout session for subscription.
-
-
-        This redirects the user to Stripe''s hosted checkout page.
-
-        After successful payment, Stripe sends a webhook to confirm.'
-      operationId: create_checkout_session_api_v1_billing_checkout_post
-      requestBody:
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/CreateCheckoutRequest'
-        required: true
-      responses:
-        '200':
-          description: Successful Response
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/CheckoutResponse'
-        '422':
-          description: Validation Error
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/HTTPValidationError'
-      security:
-      - HTTPBearer: []
-      - APIKeyHeader: []
-  /api/v1/billing/subscription:
-    get:
-      tags:
-      - billing
-      summary: Get Subscription
-      description: Get current subscription status and details.
-      operationId: get_subscription_api_v1_billing_subscription_get
-      responses:
-        '200':
-          description: Successful Response
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/SubscriptionResponse'
-      security:
-      - HTTPBearer: []
-      - APIKeyHeader: []
-  /api/v1/billing/usage:
-    get:
-      tags:
-      - billing
-      summary: Get Usage
-      description: Get current billing period usage.
-      operationId: get_usage_api_v1_billing_usage_get
-      responses:
-        '200':
-          description: Successful Response
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/UsageResponse'
-      security:
-      - HTTPBearer: []
-      - APIKeyHeader: []
-  /api/v1/billing/usage/history:
-    get:
-      tags:
-      - billing
-      summary: Get Usage History
-      description: Get monthly usage history.
-      operationId: get_usage_history_api_v1_billing_usage_history_get
-      security:
-      - HTTPBearer: []
-      - APIKeyHeader: []
-      parameters:
-      - name: months
-        in: query
-        required: false
-        schema:
-          type: integer
-          default: 6
-          title: Months
-      responses:
-        '200':
-          description: Successful Response
-          content:
-            application/json:
-              schema:
-                type: array
-                items:
-                  $ref: '#/components/schemas/UsageHistoryItem'
-                title: Response Get Usage History Api V1 Billing Usage History Get
-        '422':
-          description: Validation Error
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/HTTPValidationError'
-  /api/v1/billing/sync-usage:
-    post:
-      tags:
-      - billing
-      summary: Sync Usage To Stripe
-      description: 'Manually sync usage to Stripe (for testing).
-
-
-        In production, this runs as a scheduled job.'
-      operationId: sync_usage_to_stripe_api_v1_billing_sync_usage_post
-      responses:
-        '200':
-          description: Successful Response
-          content:
-            application/json:
-              schema:
-                additionalProperties: true
-                type: object
-                title: Response Sync Usage To Stripe Api V1 Billing Sync Usage Post
-      security:
-      - HTTPBearer: []
-      - APIKeyHeader: []
-  /api/v1/webhooks/stripe:
-    post:
-      tags:
-      - webhooks
-      summary: Stripe Webhook
-      description: 'Handle Stripe webhook events.
-
-
-        Events handled:
-
-        - checkout.session.completed: Subscription created
-
-        - customer.subscription.updated: Subscription changed
-
-        - customer.subscription.deleted: Subscription canceled
-
-        - invoice.payment_failed: Payment failed'
-      operationId: stripe_webhook_api_v1_webhooks_stripe_post
-      responses:
-        '200':
-          description: Successful Response
-          content:
-            application/json:
-              schema:
-                additionalProperties:
-                  type: string
-                type: object
-                title: Response Stripe Webhook Api V1 Webhooks Stripe Post
-  /health:
-    get:
-      summary: Health Check
-      description: Health check endpoint.
-      operationId: health_check_health_get
-      responses:
-        '200':
-          description: Successful Response
-          content:
-            application/json:
-              schema:
-                additionalProperties:
-                  type: string
-                type: object
-                title: Response Health Check Health Get
 components:
   schemas:
     AnnotationBulkCreate:
@@ -2377,20 +2083,6 @@ components:
       - has_more
       title: AudioListResponse
       description: Paginated audio file list response.
-    CheckoutResponse:
-      properties:
-        checkout_url:
-          type: string
-          title: Checkout Url
-        session_id:
-          type: string
-          title: Session Id
-      type: object
-      required:
-      - checkout_url
-      - session_id
-      title: CheckoutResponse
-      description: Response with checkout URL.
     ConfirmUploadRequest:
       properties:
         audio_id:
@@ -2428,23 +2120,6 @@ components:
       - message
       title: ConfirmUploadResponse
       description: Response schema for upload confirmation.
-    CreateCheckoutRequest:
-      properties:
-        plan:
-          $ref: '#/components/schemas/PlanType'
-        success_url:
-          type: string
-          title: Success Url
-        cancel_url:
-          type: string
-          title: Cancel Url
-      type: object
-      required:
-      - plan
-      - success_url
-      - cancel_url
-      title: CreateCheckoutRequest
-      description: Request to create a checkout session.
     DatasetCreate:
       properties:
         name:
@@ -3054,38 +2729,6 @@ components:
       - annotations
       title: LabelStudioTask
       description: Label Studio task export format.
-    LoginRequest:
-      properties:
-        email:
-          type: string
-          format: email
-          title: Email
-        password:
-          type: string
-          title: Password
-      type: object
-      required:
-      - email
-      - password
-      title: LoginRequest
-      description: Request schema for user login.
-    LoginResponse:
-      properties:
-        access_token:
-          type: string
-          title: Access Token
-        token_type:
-          type: string
-          title: Token Type
-          default: bearer
-        tenant:
-          $ref: '#/components/schemas/TenantResponse'
-      type: object
-      required:
-      - access_token
-      - tenant
-      title: LoginResponse
-      description: Response schema for login/signup.
     ModelListResponse:
       properties:
         items:
@@ -3200,96 +2843,6 @@ components:
       type: object
       title: ModelUpdate
       description: Request to update a model.
-    PlanType:
-      type: string
-      enum:
-      - free
-      - starter
-      - pro
-      - enterprise
-      title: PlanType
-      description: Available subscription plans.
-    SignupRequest:
-      properties:
-        name:
-          type: string
-          maxLength: 255
-          minLength: 1
-          title: Name
-        email:
-          type: string
-          format: email
-          title: Email
-        password:
-          type: string
-          maxLength: 128
-          minLength: 8
-          title: Password
-      type: object
-      required:
-      - name
-      - email
-      - password
-      title: SignupRequest
-      description: Request schema for user signup.
-    SubscriptionResponse:
-      properties:
-        plan:
-          type: string
-          title: Plan
-        status:
-          type: string
-          title: Status
-        current_period_start:
-          type: string
-          title: Current Period Start
-        current_period_end:
-          type: string
-          title: Current Period End
-        stripe_customer_id:
-          anyOf:
-          - type: string
-          - type: 'null'
-          title: Stripe Customer Id
-        billing_portal_url:
-          anyOf:
-          - type: string
-          - type: 'null'
-          title: Billing Portal Url
-      type: object
-      required:
-      - plan
-      - status
-      - current_period_start
-      - current_period_end
-      - stripe_customer_id
-      - billing_portal_url
-      title: SubscriptionResponse
-      description: Current subscription information.
-    TenantResponse:
-      properties:
-        id:
-          type: string
-          format: uuid
-          title: Id
-        name:
-          type: string
-          title: Name
-        email:
-          type: string
-          title: Email
-        created_at:
-          type: string
-          format: date-time
-          title: Created At
-      type: object
-      required:
-      - id
-      - name
-      - email
-      - created_at
-      title: TenantResponse
-      description: Response schema for tenant info.
     TrainingConfig:
       properties:
         artifact_types:
@@ -3521,74 +3074,6 @@ components:
       - audio_id
       title: UploadUrlResponse
       description: Response schema for presigned upload URL.
-    UsageHistoryItem:
-      properties:
-        month:
-          type: string
-          title: Month
-        inference_minutes:
-          type: number
-          title: Inference Minutes
-        training_jobs:
-          type: integer
-          title: Training Jobs
-      type: object
-      required:
-      - month
-      - inference_minutes
-      - training_jobs
-      title: UsageHistoryItem
-      description: Monthly usage history item.
-    UsageResponse:
-      properties:
-        period_start:
-          type: string
-          title: Period Start
-        period_end:
-          type: string
-          title: Period End
-        inference_minutes:
-          type: number
-          title: Inference Minutes
-        training_jobs:
-          type: integer
-          title: Training Jobs
-        storage_gb:
-          type: number
-          title: Storage Gb
-        inference_limit:
-          type: integer
-          title: Inference Limit
-        training_limit:
-          type: integer
-          title: Training Limit
-        inference_remaining:
-          type: number
-          title: Inference Remaining
-        training_remaining:
-          type: integer
-          title: Training Remaining
-        overage_minutes:
-          type: number
-          title: Overage Minutes
-        overage_cost:
-          type: number
-          title: Overage Cost
-      type: object
-      required:
-      - period_start
-      - period_end
-      - inference_minutes
-      - training_jobs
-      - storage_gb
-      - inference_limit
-      - training_limit
-      - inference_remaining
-      - training_remaining
-      - overage_minutes
-      - overage_cost
-      title: UsageResponse
-      description: Current usage summary.
     ValidationError:
       properties:
         loc:
@@ -3611,9 +3096,6 @@ components:
       - type
       title: ValidationError
   securitySchemes:
-    HTTPBearer:
-      type: http
-      scheme: bearer
     APIKeyHeader:
       type: apiKey
       in: header

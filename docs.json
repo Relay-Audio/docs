@@ -70,160 +70,73 @@
           {
             "group": "Authentication",
             "pages": [
-              {
-                "openapi": "GET /api/v1/auth/me"
-              },
-              {
-                "openapi": "GET /api/v1/auth/api-keys"
-              },
-              {
-                "openapi": "POST /api/v1/auth/api-keys"
-              },
-              {
-                "openapi": "DELETE /api/v1/auth/api-keys/{key_id}"
-              }
+              "api-reference/auth/list-api-keys",
+              "api-reference/auth/create-api-key",
+              "api-reference/auth/revoke-api-key"
             ]
           },
           {
             "group": "Datasets",
             "pages": [
-              {
-                "openapi": "GET /api/v1/datasets"
-              },
-              {
-                "openapi": "POST /api/v1/datasets"
-              },
-              {
-                "openapi": "GET /api/v1/datasets/{dataset_id}"
-              },
-              {
-                "openapi": "PATCH /api/v1/datasets/{dataset_id}"
-              },
-              {
-                "openapi": "DELETE /api/v1/datasets/{dataset_id}"
-              }
+              "api-reference/datasets/list-datasets",
+              "api-reference/datasets/create-dataset",
+              "api-reference/datasets/get-dataset",
+              "api-reference/datasets/update-dataset",
+              "api-reference/datasets/delete-dataset"
             ]
           },
           {
             "group": "Audio Files",
             "pages": [
-              {
-                "openapi": "POST /api/v1/datasets/{dataset_id}/audio/upload-url"
-              },
-              {
-                "openapi": "POST /api/v1/datasets/{dataset_id}/audio/confirm"
-              },
-              {
-                "openapi": "GET /api/v1/datasets/{dataset_id}/audio"
-              },
-              {
-                "openapi": "GET /api/v1/datasets/{dataset_id}/audio/{audio_id}"
-              },
-              {
-                "openapi": "DELETE /api/v1/datasets/{dataset_id}/audio/{audio_id}"
-              },
-              {
-                "openapi": "GET /api/v1/datasets/{dataset_id}/audio/{audio_id}/download-url"
-              }
+              "api-reference/audio/get-upload-url",
+              "api-reference/audio/confirm-upload",
+              "api-reference/audio/list-audio-files",
+              "api-reference/audio/get-audio-file",
+              "api-reference/audio/delete-audio-file",
+              "api-reference/audio/get-download-url"
             ]
           },
           {
             "group": "Annotations",
             "pages": [
-              {
-                "openapi": "POST /api/v1/datasets/{dataset_id}/annotation-sets"
-              },
-              {
-                "openapi": "GET /api/v1/datasets/{dataset_id}/annotation-sets"
-              },
-              {
-                "openapi": "GET /api/v1/datasets/{dataset_id}/annotation-sets/{annotation_set_id}"
-              },
-              {
-                "openapi": "DELETE /api/v1/datasets/{dataset_id}/annotation-sets/{annotation_set_id}"
-              },
-              {
-                "openapi": "POST /api/v1/datasets/{dataset_id}/annotation-sets/{annotation_set_id}/publish"
-              },
-              {
-                "openapi": "POST /api/v1/datasets/{dataset_id}/annotation-sets/{annotation_set_id}/annotations"
-              },
-              {
-                "openapi": "GET /api/v1/datasets/{dataset_id}/annotation-sets/{annotation_set_id}/annotations"
-              },
-              {
-                "openapi": "POST /api/v1/datasets/{dataset_id}/annotation-sets/{annotation_set_id}/annotations/bulk"
-              },
-              {
-                "openapi": "PATCH /api/v1/datasets/{dataset_id}/annotation-sets/{annotation_set_id}/annotations/{annotation_id}"
-              },
-              {
-                "openapi": "DELETE /api/v1/datasets/{dataset_id}/annotation-sets/{annotation_set_id}/annotations/{annotation_id}"
-              },
-              {
-                "openapi": "GET /api/v1/datasets/{dataset_id}/annotation-sets/{annotation_set_id}/export/label-studio"
-              }
+              "api-reference/annotations/create-annotation-set",
+              "api-reference/annotations/list-annotation-sets",
+              "api-reference/annotations/get-annotation-set-detail",
+              "api-reference/annotations/delete-annotation-set",
+              "api-reference/annotations/publish-annotation-set",
+              "api-reference/annotations/create-annotation",
+              "api-reference/annotations/list-annotations",
+              "api-reference/annotations/create-annotations-bulk",
+              "api-reference/annotations/update-annotation",
+              "api-reference/annotations/delete-annotation",
+              "api-reference/annotations/export-label-studio"
             ]
           },
           {
             "group": "Training",
             "pages": [
-              {
-                "openapi": "POST /api/v1/training-jobs"
-              },
-              {
-                "openapi": "GET /api/v1/training-jobs"
-              },
-              {
-                "openapi": "GET /api/v1/training-jobs/{job_id}"
-              },
-              {
-                "openapi": "DELETE /api/v1/training-jobs/{job_id}"
-              },
-              {
-                "openapi": "GET /api/v1/models"
-              },
-              {
-                "openapi": "GET /api/v1/models/{model_id}"
-              },
-              {
-                "openapi": "PATCH /api/v1/models/{model_id}"
-              },
-              {
-                "openapi": "DELETE /api/v1/models/{model_id}"
-              }
+              "api-reference/training/create-training-job",
+              "api-reference/training/list-training-jobs",
+              "api-reference/training/get-training-job",
+              "api-reference/training/cancel-training-job",
+              "api-reference/training/list-models",
+              "api-reference/training/get-model",
+              "api-reference/training/update-model",
+              "api-reference/training/delete-model"
             ]
           },
           {
             "group": "Inference",
             "pages": [
-              {
-                "openapi": "POST /api/v1/inference-jobs"
-              },
-              {
-                "openapi": "GET /api/v1/inference-jobs"
-              },
-              {
-                "openapi": "GET /api/v1/inference-jobs/{job_id}"
-              },
-              {
-                "openapi": "DELETE /api/v1/inference-jobs/{job_id}"
-              },
-              {
-                "openapi": "GET /api/v1/inference-jobs/{job_id}/files"
-              },
-              {
-                "openapi": "GET /api/v1/inference-jobs/{job_id}/files/{file_id}"
-              },
-              {
-                "openapi": "POST /api/v1/inference-jobs/{job_id}/files/upload-url"
-              },
-              {
-                "openapi": "POST /api/v1/inference-jobs/{job_id}/files/confirm"
-              },
-              {
-                "openapi": "GET /api/v1/inference-jobs/{job_id}/files/{file_id}/download-url"
-              }
+              "api-reference/inference/create-inference-job",
+              "api-reference/inference/list-inference-jobs",
+              "api-reference/inference/get-inference-job",
+              "api-reference/inference/cancel-inference-job",
+              "api-reference/inference/list-inference-files",
+              "api-reference/inference/get-inference-file",
+              "api-reference/inference/get-file-upload-url",
+              "api-reference/inference/confirm-file-upload",
+              "api-reference/inference/get-file-download-url"
             ]
           }
         ]

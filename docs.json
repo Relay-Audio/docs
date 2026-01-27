@@ -155,6 +155,11 @@
     "global": {
       "anchors": [
         {
+          "anchor": "Guides",
+          "href": "/quickstart",
+          "icon": "book"
+        },
+        {
           "anchor": "API Reference",
           "href": "/api-reference/introduction",
           "icon": "code"

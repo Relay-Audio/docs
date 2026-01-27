@@ -10,7 +10,7 @@ The Relay API is organized around REST principles. It accepts JSON-encoded reque
 All API requests should be made to:
 
 ```
-https://api.relay.ai
+https://api.relayai.dev
 ```
 
 ## Authentication
@@ -18,11 +18,11 @@ https://api.relay.ai
 Authenticate requests by including your API key in the `X-API-Key` header:
 
 ```bash
-curl https://api.relay.ai/api/v1/datasets \
+curl https://api.relayai.dev/api/v1/datasets \
   -H "X-API-Key: your_api_key_here"
 ```
 
-API keys are created in the [Relay dashboard](https://app.relay.ai) under **Settings > API Keys**.
+API keys are created in the [Relay dashboard](https://app.relayai.dev) under **Settings > API Keys**.
 
 <Warning>
 Keep your API key secure. Do not share it in public repositories or client-side code.
@@ -35,7 +35,7 @@ Keep your API key secure. Do not share it in public repositories or client-side 
 - **IDs**: All resource IDs are UUIDs
 
 ```bash
-curl -X POST https://api.relay.ai/api/v1/datasets \
+curl -X POST https://api.relayai.dev/api/v1/datasets \
   -H "X-API-Key: $API_KEY" \
   -H "Content-Type: application/json" \
   -d '{"name": "My Dataset", "artifact_types": [{"name": "glitch"}]}'
@@ -98,7 +98,7 @@ Validation errors (422) include details about which fields failed:
 List endpoints support pagination with `page` and `page_size` parameters:
 
 ```bash
-curl "https://api.relay.ai/api/v1/datasets/123/audio?page=1&page_size=50" \
+curl "https://api.relayai.dev/api/v1/datasets/123/audio?page=1&page_size=50" \
   -H "X-API-Key: $API_KEY"
 ```
 

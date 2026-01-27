@@ -18,7 +18,7 @@ API keys are tied to your tenant account and have full access to all resources w
 
 ### Via the dashboard
 
-1. Sign in to [app.relay.ai](https://app.relay.ai)
+1. Sign in to [app.relayai.dev](https://app.relayai.dev)
 2. Navigate to **Settings > API Keys**
 3. Click **Create API Key**
 4. Enter a descriptive name (e.g., "Production Server", "CI/CD Pipeline")
@@ -33,7 +33,7 @@ API keys are only displayed once when created. Store your key securely before cl
 Create keys programmatically using an existing key:
 
 ```bash
-curl -X POST https://api.relay.ai/api/v1/auth/api-keys \
+curl -X POST https://api.relayai.dev/api/v1/auth/api-keys \
   -H "X-API-Key: $RELAY_API_KEY" \
   -H "Content-Type: application/json" \
   -d '{
@@ -67,7 +67,7 @@ Include the key in the `X-API-Key` header:
 
 <CodeGroup>
 ```bash curl
-curl https://api.relay.ai/api/v1/datasets \
+curl https://api.relayai.dev/api/v1/datasets \
   -H "X-API-Key: rl_live_a1b2c3d4e5f6g7h8i9j0..."
 ```
 
@@ -75,11 +75,11 @@ curl https://api.relay.ai/api/v1/datasets \
 import requests
 
 headers = {"X-API-Key": "rl_live_a1b2c3d4e5f6g7h8i9j0..."}
-response = requests.get("https://api.relay.ai/api/v1/datasets", headers=headers)
+response = requests.get("https://api.relayai.dev/api/v1/datasets", headers=headers)
 ```
 
 ```typescript TypeScript
-const response = await fetch("https://api.relay.ai/api/v1/datasets", {
+const response = await fetch("https://api.relayai.dev/api/v1/datasets", {
   headers: {
     "X-API-Key": "rl_live_a1b2c3d4e5f6g7h8i9j0..."
   }
@@ -92,7 +92,7 @@ const response = await fetch("https://api.relay.ai/api/v1/datasets", {
 View all keys for your account:
 
 ```bash
-curl https://api.relay.ai/api/v1/auth/api-keys \
+curl https://api.relayai.dev/api/v1/auth/api-keys \
   -H "X-API-Key: $RELAY_API_KEY"
 ```
 
@@ -117,7 +117,7 @@ Response:
 Revoke a key to immediately invalidate it:
 
 ```bash
-curl -X DELETE https://api.relay.ai/api/v1/auth/api-keys/550e8400-e29b-41d4-a716-446655440000 \
+curl -X DELETE https://api.relayai.dev/api/v1/auth/api-keys/550e8400-e29b-41d4-a716-446655440000 \
   -H "X-API-Key: $RELAY_API_KEY"
 ```
 
@@ -177,7 +177,7 @@ Name keys by their purpose to make auditing easier:
 For temporary or time-limited access, set an expiration:
 
 ```bash
-curl -X POST https://api.relay.ai/api/v1/auth/api-keys \
+curl -X POST https://api.relayai.dev/api/v1/auth/api-keys \
   -H "X-API-Key: $RELAY_API_KEY" \
   -H "Content-Type: application/json" \
   -d '{

@@ -13,7 +13,7 @@ An official TypeScript SDK may be available in the future. For now, use `fetch` 
 
 ```typescript
 const API_KEY = process.env.RELAY_API_KEY;
-const BASE_URL = "https://api.relay.ai";
+const BASE_URL = "https://api.relayai.dev";
 
 if (!API_KEY) {
   throw new Error("RELAY_API_KEY environment variable not set");
@@ -95,7 +95,7 @@ class RelayClient {
   private apiKey: string;
   private baseUrl: string;
 
-  constructor(apiKey: string, baseUrl: string = "https://api.relay.ai") {
+  constructor(apiKey: string, baseUrl: string = "https://api.relayai.dev") {
     this.apiKey = apiKey;
     this.baseUrl = baseUrl;
   }

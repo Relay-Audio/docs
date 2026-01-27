@@ -10,7 +10,7 @@
   "favicon": "/favicon.svg",
   "openapi": "openapi.yaml",
   "api": {
-    "baseUrl": "https://api.relay.ai",
+    "baseUrl": "https://api.relayai.dev",
     "auth": {
       "method": "key",
       "name": "X-API-Key"
@@ -151,7 +151,7 @@
         },
         {
           "anchor": "GitHub",
-          "href": "https://github.com/relay-ai",
+          "href": "https://github.com/Relay-Audio",
           "icon": "github"
         }
       ]
@@ -165,13 +165,13 @@
     "links": [
       {
         "label": "Support",
-        "href": "mailto:support@relay.ai"
+        "href": "mailto:support@relayai.dev"
       }
     ],
     "primary": {
       "type": "button",
       "label": "Dashboard",
-      "href": "https://app.relay.ai"
+      "href": "https://app.relayai.dev"
     }
   },
   "contextual": {
@@ -185,7 +185,7 @@
   },
   "footer": {
     "socials": {
-      "github": "https://github.com/relay-ai",
+      "github": "https://github.com/Relay-Audio",
       "x": "https://x.com/relay_ai",
       "linkedin": "https://linkedin.com/company/relay-ai"
     }

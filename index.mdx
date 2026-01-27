@@ -28,7 +28,7 @@ Run inference on audio to detect artifacts:
 
 <CodeGroup>
 ```bash curl
-curl -X POST https://api.relay.ai/api/v1/inference-jobs \
+curl -X POST https://api.relayai.dev/api/v1/inference-jobs \
   -H "X-API-Key: YOUR_API_KEY" \
   -H "Content-Type: application/json" \
   -d '{
@@ -43,7 +43,7 @@ curl -X POST https://api.relay.ai/api/v1/inference-jobs \
 import requests
 
 response = requests.post(
-    "https://api.relay.ai/api/v1/inference-jobs",
+    "https://api.relayai.dev/api/v1/inference-jobs",
     headers={"X-API-Key": "YOUR_API_KEY"},
     json={
         "model_id": "your-model-id",
@@ -54,7 +54,7 @@ job = response.json()
 ```
 
 ```typescript TypeScript
-const response = await fetch("https://api.relay.ai/api/v1/inference-jobs", {
+const response = await fetch("https://api.relayai.dev/api/v1/inference-jobs", {
   method: "POST",
   headers: {
     "X-API-Key": "YOUR_API_KEY",

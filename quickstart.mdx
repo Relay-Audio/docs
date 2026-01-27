@@ -7,12 +7,12 @@ This guide walks you through the complete workflow: creating a dataset, uploadin
 
 ## Prerequisites
 
-- A Relay account ([sign up at app.relay.ai](https://app.relay.ai))
+- A Relay account ([sign up at app.relayai.dev](https://app.relayai.dev))
 - An API key (create one in Settings > API Keys)
 
 ## Step 1: Get your API key
 
-1. Sign in to [app.relay.ai](https://app.relay.ai)
+1. Sign in to [app.relayai.dev](https://app.relayai.dev)
 2. Navigate to **Settings > API Keys**
 3. Click **Create API Key**
 4. Copy and save your key securely
@@ -33,7 +33,7 @@ A dataset defines what artifact types you want to detect. Create one with the ar
 
 <CodeGroup>
 ```bash curl
-curl -X POST https://api.relay.ai/api/v1/datasets \
+curl -X POST https://api.relayai.dev/api/v1/datasets \
   -H "X-API-Key: $RELAY_API_KEY" \
   -H "Content-Type: application/json" \
   -d '{
@@ -51,7 +51,7 @@ import requests
 import os
 
 API_KEY = os.environ["RELAY_API_KEY"]
-BASE_URL = "https://api.relay.ai"
+BASE_URL = "https://api.relayai.dev"
 
 response = requests.post(
     f"{BASE_URL}/api/v1/datasets",
@@ -103,7 +103,7 @@ Audio upload uses presigned URLs for direct upload to cloud storage. The flow is
 
 <CodeGroup>
 ```bash curl
-curl -X POST "https://api.relay.ai/api/v1/datasets/$DATASET_ID/audio/upload-url" \
+curl -X POST "https://api.relayai.dev/api/v1/datasets/$DATASET_ID/audio/upload-url" \
   -H "X-API-Key: $RELAY_API_KEY" \
   -H "Content-Type: application/json" \
   -d '{
@@ -171,7 +171,7 @@ with open("sample_audio.wav", "rb") as f:
 
 <CodeGroup>
 ```bash curl
-curl -X POST "https://api.relay.ai/api/v1/datasets/$DATASET_ID/audio/confirm" \
+curl -X POST "https://api.relayai.dev/api/v1/datasets/$DATASET_ID/audio/confirm" \
   -H "X-API-Key: $RELAY_API_KEY" \
   -H "Content-Type: application/json" \
   -d '{
@@ -219,7 +219,7 @@ Create an annotation set and add annotations marking where artifacts occur:
 
 <CodeGroup>
 ```bash curl
-curl -X POST "https://api.relay.ai/api/v1/datasets/$DATASET_ID/annotation-sets" \
+curl -X POST "https://api.relayai.dev/api/v1/datasets/$DATASET_ID/annotation-sets" \
   -H "X-API-Key: $RELAY_API_KEY"
 ```
 
@@ -239,7 +239,7 @@ Each annotation specifies which audio file, the artifact type, and the start/end
 
 <CodeGroup>
 ```bash curl
-curl -X POST "https://api.relay.ai/api/v1/datasets/$DATASET_ID/annotation-sets/$ANNOTATION_SET_ID/annotations/bulk" \
+curl -X POST "https://api.relayai.dev/api/v1/datasets/$DATASET_ID/annotation-sets/$ANNOTATION_SET_ID/annotations/bulk" \
   -H "X-API-Key: $RELAY_API_KEY" \
   -H "Content-Type: application/json" \
   -d '{
@@ -295,7 +295,7 @@ Before training, you must publish the annotation set. Published sets are immutab
 
 <CodeGroup>
 ```bash curl
-curl -X POST "https://api.relay.ai/api/v1/datasets/$DATASET_ID/annotation-sets/$ANNOTATION_SET_ID/publish" \
+curl -X POST "https://api.relayai.dev/api/v1/datasets/$DATASET_ID/annotation-sets/$ANNOTATION_SET_ID/publish" \
   -H "X-API-Key: $RELAY_API_KEY"
 ```
 
@@ -314,7 +314,7 @@ Submit a training job with your dataset and published annotation set:
 
 <CodeGroup>
 ```bash curl
-curl -X POST https://api.relay.ai/api/v1/training-jobs \
+curl -X POST https://api.relayai.dev/api/v1/training-jobs \
   -H "X-API-Key: $RELAY_API_KEY" \
   -H "Content-Type: application/json" \
   -d '{
@@ -379,7 +379,7 @@ Once training completes, a model is created automatically. Create an inference j
 
 <CodeGroup>
 ```bash curl
-curl -X POST https://api.relay.ai/api/v1/inference-jobs \
+curl -X POST https://api.relayai.dev/api/v1/inference-jobs \
   -H "X-API-Key: $RELAY_API_KEY" \
   -H "Content-Type: application/json" \
   -d '{
@@ -456,7 +456,7 @@ requests.post(
 
 <CodeGroup>
 ```bash curl
-curl "https://api.relay.ai/api/v1/inference-jobs/$INFERENCE_JOB_ID" \
+curl "https://api.relayai.dev/api/v1/inference-jobs/$INFERENCE_JOB_ID" \
   -H "X-API-Key: $RELAY_API_KEY"
 ```
 
